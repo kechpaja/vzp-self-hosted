@@ -1,0 +1,41 @@
+let string = "let xy=()=>!!(1==2);print(xy())"
+
+let isLetterOrUnderscore = (c) =>
+    c == 95 || (c <= 122 && 97 <= c) || (c <= 90 && 65 <= c)
+
+let isDigit = (c) => c <= 57 && 48 <= c
+
+let isLetterDigitOrUnderscore = (c) => isLetterOrUnderscore(c) || isDigit(c)
+
+
+let charsGoTogether = (a, b) =>
+    if a == "" then true else /* Need if because still no short circuiting*/
+        (a:0 == 34) /* TODO need not equals */
+     || (isLetterOrUnderscore(a:0) && isLetterDigitOrUnderscore(b))
+     || (isDigit(a:0) && isDigit(b))
+     || ((a == "=" || a == "<" || a == ">") && b == 61)
+     || (a == "=" && b == 62) || (a == "!" && b == 61)
+     || (a == "<" && b == 64) || (a == "@" && b == 62)
+
+let skip = (c) => c <= 32 /* whitespace and control characters */
+
+let tokenize = (currentTokenPart, chars) =>
+    if chars.length <= 0 then
+        if currentTokenPart == "" then [] else [currentTokenPart]
+    else if chars.length == 1 then
+        if charsGoTogether(currentTokenPart, chars : 0) then
+            [currentTokenPart + chars]
+        else if skip(chars : 0) then
+            [currentTokenPart]
+        else
+            [currentTokenPart] + [chars]
+    else
+        if charsGoTogether(currentTokenPart, chars : 0) then
+            recur(currentTokenPart + chars : [0], chars : 1..(chars.length-1))
+        else if skip(chars : 0) then
+            [currentTokenPart] + recur("", chars : 1..(chars.length-1))
+        else
+            [currentTokenPart] + recur(chars : [0], chars : 1..(chars.length-1))
+
+let willNotBeUsed = print $ tokenize("", string)
+print("done!")
