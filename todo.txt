@@ -1,0 +1,10 @@
+Finish tokenizer
+
+Add file reading capacity to main language so that I can run actual tests here
+
+Start working on real parser I guess?
+
+After that I can start simplifying and optimizing stuff, and then figure out
+how to emit JavaScript and later LLVM.
+
+And not to mention typechecking, of course. 
