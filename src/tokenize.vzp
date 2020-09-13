@@ -5,17 +5,23 @@ let isDigit = (c) => c <= 57 && 48 <= c
 
 let isLetterDigitOrUnderscore = (c) => isLetterOrUnderscore(c) || isDigit(c)
 
+let isEOL = (c) => c == 10 || c == 13 || c == 59 /* \n, \r, ; */
 
 let charsGoTogether = (a, b) =>
     if a == "" then true else /* Need if because still no short circuiting*/
         (a:0 == 34) /* TODO need not equals */
      || (isLetterOrUnderscore(a:0) && isLetterDigitOrUnderscore(b))
      || (isDigit(a:0) && isDigit(b))
-     || ((a == "=" || a == "<" || a == ">") && b == 61)
+     || (isEOL(a:0) && isEOL(b))
+     || ((a == "=" || a == "<" || a == ">" || a == "!") && b == 61)
      || (a == "=" && b == 62) || (a == "!" && b == 61)
      || (a == "<" && b == 64) || (a == "@" && b == 62)
+     || (a == "|" && b == 124) || (a == "&" && b == 38)
+     || (a == "/" && b == 42)
+     || (if a.length >= 2 then (a : 0..1) == "/*" /* Again, no short circuit */
+                            && a : (a.length-2)..(a.length-1) !="*/" else false)
 
-let skip = (c) => c <= 32 /* whitespace and control characters */
+let skip = (c) => c <= 32 && c != 10 && c != 13 /* whitespace, not \n and \r */
 
 let tokenize = (currentTokenPart, chars) =>
     if chars.length <= 0 then
@@ -35,5 +41,7 @@ let tokenize = (currentTokenPart, chars) =>
         else
             [currentTokenPart] + recur(chars : [0], chars : 1..(chars.length-1))
 
+let simplifyToken = (t) => if isEOL(t:0) then ";" else t
+
 /* Just export this function */
-(program) => tokenize("", program)
+(program) => simplifyToken $ tokenize("", program)
