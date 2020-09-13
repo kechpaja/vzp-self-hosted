@@ -1,0 +1,5 @@
+import typecheck
+
+let optimize_main = (ast) => ast
+
+(program_as_string) => optimize_main(typecheck(program_as_string))

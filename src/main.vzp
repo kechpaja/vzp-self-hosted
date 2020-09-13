@@ -1,0 +1,7 @@
+import compile
+
+/* Obviously there's a lot to do here, such as IO */
+
+let program = "print([40, 41])"
+
+print(compile(program))

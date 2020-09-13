@@ -1,0 +1,5 @@
+import optimize
+
+let compile_main = (ast) => ""
+
+(program_as_string) => compile_main(optimize(program_as_string))

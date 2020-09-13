@@ -1,0 +1,6 @@
+import tokenize
+
+let parse_main = (string) => {}
+
+/* Export a nice function that the typechecker can call */
+(program_as_string) => parse_main(tokenize(program_as_string))

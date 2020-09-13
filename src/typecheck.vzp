@@ -1,0 +1,6 @@
+import parse
+
+let typecheck_main = (ast) => {}
+
+/* Export a nice simple function */
+(program_as_string) => typecheck_main(parse(program_as_string))
