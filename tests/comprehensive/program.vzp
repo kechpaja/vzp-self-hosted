@@ -4,6 +4,11 @@ import some_file as something
 
 let f=(xy,jk)=>{u:jk};
 let r=[8,9]
+let s = ""
+let t = "\n"
+let u = "This is a long string."
+
+/*TODO strings with \" in them */
 
 /* This needs to do something more interesting. */
 4<5||6<=6&&6>9&&!(7!=990)

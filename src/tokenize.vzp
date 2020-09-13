@@ -9,7 +9,8 @@ let isEOL = (c) => c == 10 || c == 13 || c == 59 /* \n, \r, ; */
 
 let charsGoTogether = (a, b) =>
     if a == "" then true else /* Need if because still no short circuiting*/
-        (a:0 == 34) /* TODO need not equals */
+        ((a:0 == 34) && (if a.length == 1 then true else if a == "" then false
+                         else ((a:(a.length-1) != 34)||(a:(a.length-2) == 92))))
      || (isLetterOrUnderscore(a:0) && isLetterDigitOrUnderscore(b))
      || (isDigit(a:0) && isDigit(b))
      || (isEOL(a:0) && isEOL(b))
@@ -17,7 +18,7 @@ let charsGoTogether = (a, b) =>
      || (a == "=" && b == 62) || (a == "!" && b == 61)
      || (a == "<" && b == 64) || (a == "@" && b == 62)
      || (a == "|" && b == 124) || (a == "&" && b == 38)
-     || (a == "/" && b == 42)
+     || (a == "." && b == 46) || (a == "/" && b == 42)
      || (if a.length >= 2 then (a : 0..1) == "/*" /* Again, no short circuit */
                             && a : (a.length-2)..(a.length-1) !="*/" else false)
 
