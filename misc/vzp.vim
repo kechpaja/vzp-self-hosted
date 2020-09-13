@@ -15,7 +15,6 @@ endif
 syn region vzpComment 	start="/\*" end="\*/" contains=vzpTodo
 syn keyword vzpTodo		TODO XXX
 
-
 " #############
 " # Constants #
 " #############
@@ -32,24 +31,35 @@ syn keyword vzpConditional      if then else
 syn keyword vzpException        throw
 syn keyword vzpImport           import as
 syn keyword vzpKeyword          let
-syn keyword vzpReservedWord     recur self print
+syn keyword vzpReservedWord     recur self print IO
 
 " Identifiers
 syn match vzpIdentifier "[a-zA-Z_][a-zA-Z0-9_]*"
 
+" Object fields and lookups
+syn match vzpObjectField "[a-zA-Z_][a-zA-Z0-9_]*\s*:"
+syn match vzpObjectLookup "\.[a-zA-Z_][a-zA-Z0-9_]*"
+
 " Numbers 
 syn match vzpNumber "\d\d*"
 "syn match vzpNumber "[0-9]+[.][0-9]*"
+
+" Misc special
+syn match vzpSpecial   "[(){}\[\]]"
 
 
 highlight link vzpBoolean       Boolean
 highlight link vzpComment       Comment
 highlight link vzpConditional   Conditional
 highlight link vzpException     Exception
+highlight link vzpIdentifier    Normal
 highlight link vzpImport        PreProc
 highlight link vzpKeyword       Keyword
 highlight link vzpNumber        Number
+highlight link vzpObjectField   Special
+highlight link vzpObjectLookup  Special
 highlight link vzpReservedWord  Identifier
+highlight link vzpSpecial       Special
 highlight link vzpString        String
 highlight link vzpTodo          Todo
 
