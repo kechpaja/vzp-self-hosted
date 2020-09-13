@@ -1,0 +1,9 @@
+/* Got to have a comment */
+
+import some_file as something
+
+let f=(xy,jk)=>{u:jk};
+let r=[8,9]
+
+/* This needs to do something more interesting. */
+4<5||6<=6&&6>9&&!(7!=990)
