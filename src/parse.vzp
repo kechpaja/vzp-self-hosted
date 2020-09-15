@@ -16,7 +16,7 @@ let opsByPrec = [ [ ".." ], /* Highest first */
 
 let isDigit = (c) => c <= 57 && c >= 48
 
-let isNumber = (string) => ((a, b) => a && b) <@ true (isDigit $ string)
+let isNumber = (string) => (((a, b) => a && b) <@ true isDigit $ string)
 
 let fail = () => { wellFormed: false } /* TODO will eventually be complex */
 
@@ -41,7 +41,7 @@ let parseArgList = (tokens, mutualRecParse) =>
 let parse = (operations, tokens) =>
     if operations.length == 0 then
         if tokens.length == 0 then
-            /* TODO some failure case? */ 2
+            fail()
         else if tokens:0 == "if" then
             let cond = recur(opsByPrec, restOf(tokens))
             if !cond.wellFormed || !checkFor(cond.rest, "then") then fail() else
@@ -63,9 +63,12 @@ let parse = (operations, tokens) =>
               rest: restOf(list.rest),
               wellFormed: true }
         else if isNumber(tokens:0) then
-            /* TODO parse a number */ 0
+            { ast: { type: "number",
+                     value: tokens:0 },
+              rest: restOf(tokens),
+              wellFormed: true }
         else
-            /* TODO lookups, objects, lambdas, parens */ 1
+            /* TODO lookups, objects, lambdas, parens */ fail()
     else
         let left = recur(restOf(operations), tokens)
         if left.rest.length == 0 then
