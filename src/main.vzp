@@ -1,7 +1,8 @@
-import tokenize
+import parse
 
 /* Obviously there's a lot to do here, such as IO */
 
-let program = IO.read("../tests/comprehensive/program.vzp")
+let program = IO.read("../tests/precedence/program.vzp")
 
-((x, y) => x) <@ print("Tokens:") print $ tokenize(program)
+/* TODO we need a working toString function */
+parse(program)

@@ -1,6 +1,33 @@
 import tokenize
 
-let parse_main = (string) => {}
+let opsByPrec = [ [ ".." ], /* Highest first */
+                  [ ":"  ],
+                  [ "$", "@>", "<@" ],
+                  [ "*", "/", "%" ],
+                  [ "+", "-" ],
+                  [ ">", "<", ">=", "<=" ],
+                  [ "==", "!=" ],
+                  [ "&&" ],
+                  [ "||" ] ]
+
+/* Obviously this is just a stub that will be filled in later */
+let parsePreqAnd = (tokens) => { ast: {}, remainingTokens: tokens }
+
+/* TODO this can be generalized. Also need to pass function down to make up for
+ * not having mutual recursion here. */
+let parsePreqOr = (tokens) =>
+    let left = parsePreqAnd(tokens)
+    if left.remainingTokens.length == 0 then
+        left
+    else if left.remainingTokens:0 == "||" then
+        let rtl = left.remainingTokens.length
+        let right = recur(left.remainingTokens:(1..(rtl-1)))
+        { ast: { type: "call",
+                 func: { type: "lookup", identifier: "||" },
+                 args: [ left.ast, right.ast ] },
+          remainingTokens: right.remainingTokens }
+
+let parse_main = (tokens) => {}
 
 /* Export a nice function that the typechecker can call */
 (program_as_string) => parse_main(tokenize(program_as_string))
