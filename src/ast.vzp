@@ -1,0 +1,16 @@
+let stringifyAst = (ast) =>
+    if ast.type == "conditional" then
+        "( if " + recur(ast.cond) + " then " + recur(ast.thn) + " else " + recur(ast.els) + " )"
+    else if ast.type == "number" then
+        ast.value
+    else if ast.type == "lookup" then
+        ast.identifier
+    else if ast.type == "array" then
+        "[ " + (((x, y) => x + ", " + y) @> (recur $ ast.contents) "") + "]"
+    else if ast.type == "call" then
+        recur(ast.func) + "(" + (((x, y) => x + ", " + y) @> (recur $ ast.args) "") + ")"
+    else
+        "UNKNOWN"
+
+/* Exports (TODO get multiline objects working!) */
+{ stringifyAst: stringifyAst }

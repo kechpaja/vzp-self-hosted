@@ -1,19 +1,20 @@
 import tokenize
+import ast
 import utils
 
 /* TODO this should be in a library somewhere */
 let restOf = (array) =>
     if array.length < 2 then [] else array:(1..(array.length-1))
 
-let opsByPrec = [ [ ".." ], /* Highest first */
-                  [ ":"  ],
-                  [ "$", "@>", "<@" ],
-                  [ "*", "/", "%" ],
-                  [ "+", "-" ],
-                  [ ">", "<", ">=", "<=" ],
-                  [ "==", "!=" ],
+let opsByPrec = [ [ "||" ], /* Lowest to highest */
                   [ "&&" ],
-                  [ "||" ] ]
+                  [ "==", "!=" ],
+                  [ ">", "<", ">=", "<=" ],
+                  [ "+", "-" ],
+                  [ "*", "/", "%" ],
+                  [ "$", "@>", "<@" ],
+                  [ ":"  ],
+                  [ ".." ] ]
 
 let isDigit = (c) => c <= 57 && c >= 48
 
@@ -87,10 +88,10 @@ let parse = (operations, tokens) =>
         let left = recur(restOf(operations), tokens)
         if left.rest.length == 0 then
             left
-        else if left.rest:0 == "||" then /* TODO in list, not eq */
+        else if utils.in(left.rest:0, operations:0) then
             let right = recur(operations, restOf(left.rest))
             { ast: { type: "call",
-                     func: { type: "lookup", identifier: "||" },
+                     func: { type: "lookup", identifier: left.rest:0 },
                      args: [ left.ast, right.ast ] },
               rest: right.rest,
               wellFormed: true }
