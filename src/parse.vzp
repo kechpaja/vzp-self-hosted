@@ -75,7 +75,13 @@ let parse = (operations, tokens) =>
               wellFormed: true }
         else if isNumber(tokens:0) then
             { ast: { type: "number",
-                     value: tokens:0 },
+                     value: utils.atoi(tokens:0) },
+              rest: restOf(tokens),
+              wellFormed: true }
+        else if ((tokens:0):0)==34 && ((tokens:0):((tokens:0).length-1)==34)then
+            let str = (tokens:0):(1..((tokens:0).length-1))
+            { ast: { type: "array",
+                     contents: ((x) => {type: "number", value: x}) $ str },
               rest: restOf(tokens),
               wellFormed: true }
         else

@@ -1,5 +1,9 @@
+/* TODO use isDigit to check each digit first! */
+let atoi = (string) =>
+    ((x, y) => ((x * 10) + (y - 48))) <@ 0 string
+
 /* TODO inefficient */
 let in = (x, collection) =>
     || @> ((y) => x == y) $ collection false
 
-{ in: in }
+{ atoi: atoi, in: in }
