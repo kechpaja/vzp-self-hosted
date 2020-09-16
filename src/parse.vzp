@@ -1,4 +1,5 @@
 import tokenize
+import utils
 
 /* TODO this should be in a library somewhere */
 let restOf = (array) =>
@@ -18,7 +19,9 @@ let isDigit = (c) => c <= 57 && c >= 48
 
 let isNumber = (string) => (((a, b) => a && b) <@ true isDigit $ string)
 
-let fail = () => { wellFormed: false } /* TODO will eventually be complex */
+let fail = (error) =>
+    let unused = print(error)
+    { wellFormed: false, error: error } /* TODO */
 
 let checkFor = (tokens, value) =>
     if tokens.length == 0 then false else (tokens:0) == value
@@ -26,27 +29,33 @@ let checkFor = (tokens, value) =>
 let parseArgList = (tokens, mutualRecParse) =>
     let listEnds = () =>
         tokens:0 == "]" || tokens:0 == ")" || tokens:0 == "}"
-    if tokens.length == 0 then fail()
+
+    if tokens.length == 0 then fail("End of tokens in parseArgList")
     else if listEnds() then
-        { ast: [], rest: tokens:(1..(tokens.length-1)), wellFormed: true }
+        { ast: [], rest: restOf(tokens), wellFormed: true }
     else
         let elem = mutualRecParse(tokens)
-        if !elem.wellFormed then fail() else
+        if !elem.wellFormed then fail("Bad expr in parseArgList") else
         if listEnds() then { ast: [elem.ast], rest: elem.rest, wellFormed: true}
         else if checkFor(elem.rest, ",") then
-            recur(elem.rest:(1..(elem.rest-1)), mutualRecParse)
+            let moreArgs = recur(restOf(elem.rest), mutualRecParse)
+            { ast: [elem.ast] + moreArgs.ast,
+              rest: moreArgs.rest,
+              wellFormed: true}
         else
-            fail()
+            fail("Expected comma in parseArgList")
 
 let parse = (operations, tokens) =>
     if operations.length == 0 then
         if tokens.length == 0 then
-            fail()
+            fail("End of tokens in parse")
         else if tokens:0 == "if" then
             let cond = recur(opsByPrec, restOf(tokens))
-            if !cond.wellFormed || !checkFor(cond.rest, "then") then fail() else
+            if !cond.wellFormed || !checkFor(cond.rest, "then")
+                then fail("Bad expr in condition of if") else
             let thn = recur(opsByPrec, restOf(cond.rest))
-            if !thn.wellFormed || !checkFor(thn.rest, "else") then fail() else
+            if !thn.wellFormed || !checkFor(thn.rest, "else")
+                then fail("Bad expr in consequent of if") else
             let els = recur(opsByPrec, restOf(thn.rest))
             { ast: { type: "conditional",
                      cond: cond.ast,
@@ -57,7 +66,8 @@ let parse = (operations, tokens) =>
         else if tokens:0 == "[" then
             let list = parseArgList(restOf(tokens),
                                     (tkns) => recur(opsByPrec, tkns))
-            if !list.wellFormed || ! checkFor(list.rest, "]") then fail() else
+            if !list.wellFormed || ! checkFor(list.rest, "]") 
+                then fail("Problem with list contents or final ]") else
             { ast: { type: "array",
                      contents: list.ast },
               rest: restOf(list.rest),
@@ -68,7 +78,11 @@ let parse = (operations, tokens) =>
               rest: restOf(tokens),
               wellFormed: true }
         else
-            /* TODO lookups, objects, lambdas, parens */ fail()
+            { ast: { type: "lookup",
+                     identifier: tokens:0 },
+              rest: restOf(tokens),
+              wellFormed: true }
+            /* TODO lookups, objects, lambdas, parens */
     else
         let left = recur(restOf(operations), tokens)
         if left.rest.length == 0 then

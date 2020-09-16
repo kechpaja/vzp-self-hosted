@@ -1,8 +1,12 @@
 import parse
+import utils
 
 /* Obviously there's a lot to do here, such as IO */
 
 let program = IO.read("../tests/precedence/program.vzp")
 
-/* TODO we need a working toString function */
-parse(program)
+let result = parse(program)
+if result.wellFormed then
+    print(utils.stringifyAst(result.ast))
+else
+    print(result.error)
