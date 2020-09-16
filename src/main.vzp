@@ -3,7 +3,7 @@ import ast
 
 /* Obviously there's a lot to do here, such as IO */
 
-let program = IO.read("../tests/precedence/program.vzp")
+let program = IO.read("../tests/conditional/program.vzp")
 
 let result = parse(program)
 if result.wellFormed then
