@@ -1,3 +1,5 @@
+import utils
+
 let isLetterOrUnderscore = (c) =>
     c == 95 || (c <= 122 && 97 <= c) || (c <= 90 && 65 <= c)
 
@@ -19,8 +21,8 @@ let charsGoTogether = (a, b) =>
      || (a == "<" && b == 64) || (a == "@" && b == 62)
      || (a == "|" && b == 124) || (a == "&" && b == 38)
      || (a == "." && b == 46) || (a == "/" && b == 42)
-     || (if a.length >= 2 then (a : 0..1) == "/*" /* Again, no short circuit */
-                            && a : (a.length-2)..(a.length-1) !="*/" else false)
+     || (if a.length >= 2 then (a:(0..1)) == "/*" /* Again, no short circuit */
+                       && (a:((a.length-2)..(a.length-1))) !="*/" else false)
 
 let skip = (c) => c <= 32 && c != 10 && c != 13 /* whitespace, not \n and \r */
 
@@ -44,5 +46,26 @@ let tokenize = (currentTokenPart, chars) =>
 
 let simplifyToken = (t) => if isEOL(t:0) then ";" else t
 
+let ops = ["==", "!=", "<", "<=", ">", ">=", "||", "&&", ".", "..", ":",
+           "+", "-", "/", "*", "%", "@>", "<@", "$"]
+let mergeKeywordsBefore = ["if", "then", "else", "(", "[", "{", ",", ";"] + ops
+let mergeKeywordsAfter = ["then", "else", "as", ")", "}", "]", ",", ";"] + ops
+
+let merge = (token, list) =>
+    if token.length >= 2 && (token:(0..1)) == "/*" then list else
+    if list.length == 0 && token == ";" then [] else
+    if list.length == 0 then [token] else
+    if utils.in(token, mergeKeywordsBefore) && ((list:0) == ";") then 
+        [token] + (if list.length > 1 then (list:(1..(list.length-1))) else [])
+    else if utils.in(list:0, mergeKeywordsAfter) && token == ";" then
+        list
+    else
+        [token] + list
+
 /* Just export this function */
-(program) => simplifyToken $ tokenize("", program)
+(program) =>
+    let tokens = merge @> (simplifyToken $ tokenize("", program)) []
+    if tokens.length > 0 && (tokens:0 == ";") then 
+        (tokens:(1..(tokens.length-1)))
+    else
+        tokens

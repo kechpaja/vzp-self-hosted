@@ -40,47 +40,69 @@ let noFollowingExpr = (tokens) =>
  || utils.in(tokens:0, [";", ")", "}", "]", "then", "else"]) /* TODO binops */
 
 let parseArgList = (tokens, mutualRecParse) =>
-    let listEnds = () =>
-        tokens:0 == "]" || tokens:0 == ")" || tokens:0 == "}"
+    let listEnds = (tkns) =>
+        ((tkns:0) == "]") || ((tkns:0) == ")") || ((tkns:0) == "}")
 
     if tokens.length == 0 then fail("End of tokens in parseArgList")
-    else if listEnds() then
-        { ast: [], rest: restOf(tokens), wellFormed: true }
+    else if listEnds(tokens) then
+        { ast: [], rest: tokens, wellFormed: true }
     else
         let elem = mutualRecParse(tokens)
         if !elem.wellFormed then fail("Bad expr in parseArgList") else
-        if listEnds() then { ast: [elem.ast], rest: elem.rest, wellFormed: true}
+        if listEnds(elem.rest) then
+            { ast: [elem.ast], rest: elem.rest, wellFormed: true}
         else if checkFor(elem.rest, ",") then
             let moreArgs = recur(restOf(elem.rest), mutualRecParse)
-            { ast: [elem.ast] + moreArgs.ast,
+            if !moreArgs.wellFormed then fail(moreArgs.error) else
+            { ast: ([elem.ast] + moreArgs.ast),
               rest: moreArgs.rest,
               wellFormed: true}
         else
             fail("Expected comma in parseArgList")
 
 let parseObjectInternalList = (tokens, mutualRecParse) =>
-    let listEnds = () =>
-        tokens:0 == "]" || tokens:0 == ")" || tokens:0 == "}"
+    let listEnds = (tkns) =>
+        ((tkns:0) == "]") || ((tkns:0) == ")") || ((tkns:0) == "}")
 
     if tokens.length < 4 then
         fail("Too few tokens in parseObjectInternalList")
-    else if listEnds() then { ast: [], rest: restOf(tokens), wellFormed: true }
+    else if listEnds(tokens) then 
+        { ast: [], rest: tokens, wellFormed: true }
     else if !isValidId(tokens:0) || (tokens:1) != ":" then
         fail("Need an ID followed by ':' in an object field")
     else
-        let elem = mutualRecParse(tokens:2)
+        let elem = mutualRecParse(tokens:(2..(tokens.length-1)))
         if !elem.wellFormed then fail(elem.error) else
-        if listEnds() then
+        if listEnds(elem.rest) then
             { ast: [{ identifier: (tokens:0), value: elem.ast }],
               rest: elem.rest,
               wellFormed: true }
         else if checkFor(elem.rest, ",") then
             let more = recur(restOf(elem.rest), mutualRecParse)
-            { ast: [{ identifier: (tokens:0), value: elem.ast }] + more.ast,
+            if !more.wellFormed then fail(more.error) else
+            { ast: ([{ identifier: (tokens:0), value: elem.ast }] + more.ast),
               rest: more.rest,
               wellFormed: true }
         else
             fail("Expected comma in parseObjectInternalList")
+
+let parseDotsAndCalls = (expr, tokens, mutualRecParse) =>
+    if (tokens:0) == "." then
+        if (tokens.length < 2) || (!isValidId(tokens:1)) then
+            fail("Not a valid field lookup")
+        else
+            let next = { type: "field_access", obj: expr, field: (tokens:1) }
+            recur(next, restOf(restOf(tokens)), mutualRecParse)
+        /* TODO consider handling decimal numbers here? */
+    else if (tokens:0) == "(" then
+        let list = parseArgList(restOf(tokens), mutualRecParse)
+        if !list.wellFormed || !checkFor(list.rest, ")") then
+            fail("Issue parsing argument list in call")
+        else
+            let next = { type: "call", func: expr, args: list.ast }
+            recur(next, restOf(list.rest), mutualRecParse)
+    else
+        { ast: expr, rest: tokens, wellFormed: true }
 
 let parse = (operations, tokens) =>
     let recurWithFullOps = let rcr = recur; (tkns) => rcr(opsByPrec, tkns)
@@ -93,7 +115,7 @@ let parse = (operations, tokens) =>
             if !cond.wellFormed || !checkFor(cond.rest, "then")
                 then fail("Bad expr in condition of if") else
             let thn = recur(opsByPrec, restOf(cond.rest))
-            if !thn.wellFormed || !checkFor(thn.rest, "else")
+            if (!thn.wellFormed) || (!checkFor(thn.rest, "else"))
                 then fail("Bad expr in consequent of if") else
             let els = recur(opsByPrec, restOf(thn.rest))
             if !els.wellFormed then fail(els.error) else
@@ -204,12 +226,18 @@ let parse = (operations, tokens) =>
                      value: utils.atoi(tokens:0) },
               rest: restOf(tokens),
               wellFormed: true }
-        else if ((tokens:0):0)==34 && ((tokens:0):((tokens:0).length-1)==34)then
-            let str = (tokens:0):(1..((tokens:0).length-1))
-            { ast: { type: "array",
-                     contents: ((x) => {type: "number", value: x}) $ str },
-              rest: restOf(tokens),
-              wellFormed: true }
+        else if (tokens:0).length >= 2 && ((tokens:0):0)==34 
+                                && ((tokens:0):((tokens:0).length-1)==34) then
+            if (tokens:0).length == 2 then 
+                { ast: { type: "array", contents: [] },
+                  rest: restOf(tokens),
+                  wellFormed: true }
+            else
+                let str = (tokens:0):(1..((tokens:0).length-2))
+                { ast: { type: "array",
+                         contents: ((x) => {type: "number", value: x}) $ str },
+                  rest: restOf(tokens),
+                  wellFormed: true }
         else if isValidId(tokens:0) || utils.in(tokens:0, + <@ [] opsByPrec)then
             { ast: { type: "lookup",
                      identifier: tokens:0 },
@@ -222,23 +250,26 @@ let parse = (operations, tokens) =>
         if !left.wellFormed then fail(left.error) else
         if left.rest.length == 0 || !utils.in(left.rest:0, operations:0) then
             left
-        else if (left.rest:0) == "." then
+        else if utils.in(left.rest:0, [".", "("]) then
+            parseDotsAndCalls(left.ast, left.rest, recurWithFullOps)
+   /*     else if (left.rest:0) == "." then
             if left.rest.length < 2 || !isValidId(left.rest:1) then
                 fail("Not a valid field lookup")
             else
                 { ast: { type: "field_access",
                          obj: left.ast,
                          field: left.rest:1 },
-                  rest: restOf(restOf(left.rest)) }
+                  rest: restOf(restOf(left.rest)),
+                  wellFormed: true }
             /* TODO consider handling decimal numbers here? */
-        else if (left.rest:0) == "(" then
+    /*    else if (left.rest:0) == "(" then
             let list = parseArgList(restOf(left.rest), recurWithFullOps)
             if !list.wellFormed || !checkFor(list.rest, ")") then
                 fail("Issue parsing argument list in call")
             else
                 { ast: { type: "call", func: left.ast, args: list.ast },
                   rest: restOf(list.rest),
-                  wellFormed: true }
+                  wellFormed: true } */
         else
             let right = recur(operations, restOf(left.rest))
             if !right.wellFormed then fail(right.error) else

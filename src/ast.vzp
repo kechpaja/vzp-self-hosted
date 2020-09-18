@@ -12,7 +12,9 @@ let stringifyAst = (ast) =>
     else if ast.type == "import" then
         "(import " + ast.module + ")"
     else if ast.type == "assignment" then
-        "(let " + ast.identifier + " = " + ast.value + " in " + ast.body + ")"
+        "(let " + ast.identifier + " = " + recur(ast.value) + " in " + recur(ast.body) + ")"
+    else if ast.type == "field_access" then
+        "(field_access " + recur(ast.obj) + " " + ast.field + ")"
     else
         "UNKNOWN"
 
