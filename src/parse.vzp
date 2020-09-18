@@ -18,7 +18,14 @@ let opsByPrec = [ [ "||" ], /* Lowest to highest */
 
 let isDigit = (c) => c <= 57 && c >= 48
 
+let isAlpha = (c) => (c <= 90 && c >= 65) || (c <= 122 && c >= 97) || c == 95
+
 let isNumber = (string) => (((a, b) => a && b) <@ true isDigit $ string)
+
+let isValidId = (string) => 
+    (string.length > 0)
+ && isAlpha(string:0)
+ && ((x, y) => x && (isAlpha(y) || isDigit(y))) <@ true restOf(string)
 
 let fail = (error) =>
     let unused = print(error)
@@ -64,6 +71,47 @@ let parse = (operations, tokens) =>
                      els: els.ast },
               rest: els.rest,
               wellFormed: true }
+        else if tokens:0 == "let" then
+            if tokens.length < 5 || !isValidId(tokens:1) || tokens:2 != "=" then
+                fail("Malformed 'let' expression")
+            else
+                let value = recur(opsByPrec, tokens:(3..(tokens.length-1)))
+                if !value.wellFormed then fail(value.error) else
+                if !checkFor(value.rest, ";") then
+                    fail("Missing semicolon or newline after value of 'let'")
+                else
+                    let body = recur(opsByPrec, restOf(value.rest))
+                    if !body.wellFormed then fail(body.error) else
+                    { ast: { type: "assignment",
+                             identifier: (tokens:1),
+                             value: value.ast,
+                             body: body.ast },
+                      rest: body.rest,
+                      wellFormed: true }
+        else if tokens:0 == "import" then
+            /* TODO consider allowing a string as the value you import from? */
+            if tokens.length < 2 || !isValidId(tokens:1) then
+                fail("Malformed import statement")
+            else
+                if (tokens.length >= 4) && ((tokens:2) == "as")
+                                        && isValidId(tokens:3) then
+                    let body = recur(opsByPrec, tokens:(4..(tokens.length-1)))
+                    if !body.wellFormed then fail(body.error) else
+                    { ast: { type: "assignment",
+                             identifier: (tokens:3),
+                             value: { type: "import", module: (tokens:1) },
+                             body: body.ast }
+                      rest: body.rest,
+                      wellFormed: true }
+                else
+                    let body = recur(opsByPrec, tokens:(2..(tokens.length-1)))
+                    if !body.wellFormed then fail(body.error) else
+                    { ast: { type: "assignment",
+                             identifier: (tokens:1),
+                             value: { type: "import", module: (tokens:1) },
+                             body: body.ast }
+                      rest: body.rest,
+                      wellFormed: true }
         else if tokens:0 == "[" then
             let list = parseArgList(restOf(tokens),
                                     (tkns) => recur(opsByPrec, tkns))
@@ -84,12 +132,14 @@ let parse = (operations, tokens) =>
                      contents: ((x) => {type: "number", value: x}) $ str },
               rest: restOf(tokens),
               wellFormed: true }
-        else
+        else if isValidId(tokens:0) then
             { ast: { type: "lookup",
                      identifier: tokens:0 },
               rest: restOf(tokens),
               wellFormed: true }
-            /* TODO lookups, objects, lambdas, parens */
+        else
+            fail("There's something wrong with this token: " + (tokens:0))
+            /* TODO objects, lambdas, parens */
     else
         let left = recur(restOf(operations), tokens)
         if left.rest.length == 0 then
