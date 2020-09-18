@@ -131,7 +131,7 @@ let parse = (operations, tokens) =>
                     { ast: { type: "assignment",
                              identifier: (tokens:3),
                              value: { type: "import", module: (tokens:1) },
-                             body: body.ast }
+                             body: body.ast },
                       rest: body.rest,
                       wellFormed: true }
                 else
@@ -140,7 +140,7 @@ let parse = (operations, tokens) =>
                     { ast: { type: "assignment",
                              identifier: (tokens:1),
                              value: { type: "import", module: (tokens:1) },
-                             body: body.ast }
+                             body: body.ast },
                       rest: body.rest,
                       wellFormed: true }
         else if tokens:0 == "[" then
