@@ -14,7 +14,8 @@ let opsByPrec = [ [ "||" ], /* Lowest to highest */
                   [ "*", "/", "%" ],
                   [ "$", "@>", "<@" ],
                   [ ":"  ],
-                  [ ".." ] ]
+                  [ ".." ],
+                  [ ".", "(" ] ]
 
 let isDigit = (c) => c <= 57 && c >= 48
 
@@ -33,6 +34,10 @@ let fail = (error) =>
 
 let checkFor = (tokens, value) =>
     if tokens.length == 0 then false else (tokens:0) == value
+
+let noFollowingExpr = (tokens) =>
+    tokens.length == 0
+ || utils.in(tokens:0, [";", ")", "}", "]", "then", "else"]) /* TODO binops */
 
 let parseArgList = (tokens, mutualRecParse) =>
     let listEnds = () =>
@@ -53,7 +58,33 @@ let parseArgList = (tokens, mutualRecParse) =>
         else
             fail("Expected comma in parseArgList")
 
+let parseObjectInternalList = (tokens, mutualRecParse) =>
+    let listEnds = () =>
+        tokens:0 == "]" || tokens:0 == ")" || tokens:0 == "}"
+
+    if tokens.length < 4 then
+        fail("Too few tokens in parseObjectInternalList")
+    else if listEnds() then { ast: [], rest: restOf(tokens), wellFormed: true }
+    else if !isValidId(tokens:0) || (tokens:1) != ":" then
+        fail("Need an ID followed by ':' in an object field")
+    else
+        let elem = mutualRecParse(tokens:2)
+        if !elem.wellFormed then fail(elem.error) else
+        if listEnds() then
+            { ast: [{ identifier: (tokens:0), value: elem.ast }],
+              rest: elem.rest,
+              wellFormed: true }
+        else if checkFor(elem.rest, ",") then
+            let more = recur(restOf(elem.rest), mutualRecParse)
+            { ast: [{ identifier: (tokens:0), value: elem.ast }] + more.ast,
+              rest: more.rest,
+              wellFormed: true }
+        else
+            fail("Expected comma in parseObjectInternalList")
+
 let parse = (operations, tokens) =>
+    let recurWithFullOps = let rcr = recur; (tkns) => rcr(opsByPrec, tkns)
+
     if operations.length == 0 then
         if tokens.length == 0 then
             fail("End of tokens in parse")
@@ -113,13 +144,59 @@ let parse = (operations, tokens) =>
                       rest: body.rest,
                       wellFormed: true }
         else if tokens:0 == "[" then
-            let list = parseArgList(restOf(tokens),
-                                    (tkns) => recur(opsByPrec, tkns))
-            if !list.wellFormed || ! checkFor(list.rest, "]") 
-                then fail("Problem with list contents or final ]") else
-            { ast: { type: "array",
-                     contents: list.ast },
-              rest: restOf(list.rest),
+            let list = parseArgList(restOf(tokens), recurWithFullOps)
+            if !list.wellFormed || ! checkFor(list.rest, "]") then
+                fail("Problem with list contents or final ]")
+            else
+                { ast: { type: "array", contents: list.ast },
+                  rest: restOf(list.rest),
+                  wellFormed: true }
+        else if tokens:0 == "{" then
+            let list = parseObjectInternalList(restOf(tokens), recurWithFullOps)
+            if !list.wellFormed || !checkFor(list.rest, "}") then
+                fail("Problem with object contents or final }")
+            else
+                { ast: { type: "object", contents: list.ast },
+                  rest: restOf(list.rest),
+                  wellFormed: true }
+        else if tokens:0 == "(" then
+            if tokens.length >= 4 && ((tokens:1) == ")")
+                                  && ((tokens:2) == "=>") then
+                let body = recurWithFullOps(tokens:(3..(tokens.length-1)))
+                if !body.wellFormed then fail(body.error) else
+                { ast: { type: "lambda", params: [], body: body.ast },
+                  rest: body.rest,
+                  wellFormed: true }
+            else if tokens.length >= 4 && isValidId(tokens:1) 
+                           && ((tokens:2) == ","
+                            || ((tokens:2) == ")" && (tokens:3) == "=>")) then
+                let list = parseParamList(restOf(tokens))
+                if !list.wellFormed || !checkFor(list.rest, ")") then
+                    fail("Problem with param list contents or final )")
+                else if !checkFor(restOf(list.rest), "=>") then
+                    fail("Expected '=>' after param list of function")
+                else
+                    let body = recurWithFullOps(tokens:(2..(tokens.length-1)))
+                    if !body.wellFormed then fail(body.error) else
+                    { ast: { type: "lambda", params: list.ast, body: body.ast },
+                      rest: body.rest,
+                      wellFormed: true }
+            else
+                let expr = recurWithFullOps(restOf(tokens))
+                if !expr.wellFormed || !checkFor(expr.rest, ")") then
+                    fail("Problem parsing parenthesized expression")
+                else
+                    { ast: expr.ast,
+                      rest: restOf(expr.rest),
+                      wellFormed: true }
+        else if utils.in(tokens:0, ["!", "-"]) then
+            /* TODO allow unop as identifier*/
+            let expr = recur([], restOf(tokens))
+            if !expr.wellFormed then fail(expr.error) else
+            { ast: { type: "call",
+                     func: { type: "lookup", identifier: (tokens:0) },
+                     args: [ expr.ast ] },
+              rest: expr.rest,
               wellFormed: true }
         else if isNumber(tokens:0) then
             { ast: { type: "number",
@@ -132,27 +209,52 @@ let parse = (operations, tokens) =>
                      contents: ((x) => {type: "number", value: x}) $ str },
               rest: restOf(tokens),
               wellFormed: true }
-        else if isValidId(tokens:0) then
+        else if isValidId(tokens:0) || utils.in(tokens:0, + <@ [] opsByPrec)then
             { ast: { type: "lookup",
                      identifier: tokens:0 },
               rest: restOf(tokens),
               wellFormed: true }
         else
             fail("There's something wrong with this token: " + (tokens:0))
-            /* TODO objects, lambdas, parens */
     else
         let left = recur(restOf(operations), tokens)
-        if left.rest.length == 0 then
+        if left.rest.length == 0 || !utils.in(left.rest:0, operations:0) then
             left
-        else if utils.in(left.rest:0, operations:0) then
-            let right = recur(operations, restOf(left.rest))
-            { ast: { type: "call",
-                     func: { type: "lookup", identifier: left.rest:0 },
-                     args: [ left.ast, right.ast ] },
-              rest: right.rest,
-              wellFormed: true }
+        else if (left.rest:0) == "." then
+            if left.rest.length < 2 || !isValidId(left.rest:1) then
+                fail("Not a valid field lookup")
+            else
+                { ast: { type: "field_access",
+                         obj: left.ast,
+                         field: left.rest:1 },
+                  rest: restOf(restOf(left.rest)) }
+            /* TODO consider handling decimal numbers here? */
+        else if (left.rest:0) == "(" then
+            let list = parseArgList(restOf(left.rest), recurWithFullOps)
+            if !list.wellFormed || !checkFor(list.rest, ")") then
+                fail("Issue parsing argument list in call")
+            else
+                { ast: { type: "call", func: left.ast, args: list.ast },
+                  rest: restOf(list.rest),
+                  wellFormed: true }
         else
-            left /*TODO can merge with earlier case once we have short circuit*/
+            let right = recur(operations, restOf(left.rest))
+            if !right.wellFormed then fail(right.error) else
+            if !utils.in(left.rest:0, ["<@", "@>"]) then
+                { ast: { type: "call",
+                         func: { type: "lookup", identifier: left.rest:0 },
+                         args: [ left.ast, right.ast ] },
+                  rest: right.rest,
+                  wellFormed: true }
+            else
+                /* TODO This is where we check for a comma if we put that in */
+                let third = recur(operations, right.rest)
+                if !third.wellFormed then fail(third.error) else
+                { ast: { type: "call",
+                         func: { type: "lookup", identifier: left.rest:0 },
+                         args: [ left.ast, right.ast, third.ast ] },
+                  rest: third.rest,
+                  wellFormed: true }
 
 /* Export a nice function that the typechecker can call */
 (program_as_string) => parse(opsByPrec, tokenize(program_as_string))

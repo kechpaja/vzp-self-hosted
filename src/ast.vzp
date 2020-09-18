@@ -1,6 +1,6 @@
 let stringifyAst = (ast) =>
     if ast.type == "conditional" then
-        "( if " + recur(ast.cond) + " then " + recur(ast.thn) + " else " + recur(ast.els) + " )"
+        "(if " + recur(ast.cond) + " then " + recur(ast.thn) + " else " + recur(ast.els) + ")"
     else if ast.type == "number" then
         "NUMBER" /* ast.value TODO itoa() */
     else if ast.type == "lookup" then
@@ -9,6 +9,10 @@ let stringifyAst = (ast) =>
         "[ " + (((x, y) => (x + ", " + y)) @> (recur $ ast.contents) "") + "]"
     else if ast.type == "call" then
         recur(ast.func) + "(" + (((x, y) => (x + ", " + y)) @> (recur $ ast.args) "") + ")"
+    else if ast.type == "import" then
+        "(import " + ast.module + ")"
+    else if ast.type == "assignment" then
+        "(let " + ast.identifier + " = " + ast.value + " in " + ast.body + ")"
     else
         "UNKNOWN"
 
