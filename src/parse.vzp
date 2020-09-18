@@ -96,6 +96,7 @@ let parse = (operations, tokens) =>
             if !thn.wellFormed || !checkFor(thn.rest, "else")
                 then fail("Bad expr in consequent of if") else
             let els = recur(opsByPrec, restOf(thn.rest))
+            if !els.wellFormed then fail(els.error) else
             { ast: { type: "conditional",
                      cond: cond.ast,
                      thn: thn.ast,
@@ -218,6 +219,7 @@ let parse = (operations, tokens) =>
             fail("There's something wrong with this token: " + (tokens:0))
     else
         let left = recur(restOf(operations), tokens)
+        if !left.wellFormed then fail(left.error) else
         if left.rest.length == 0 || !utils.in(left.rest:0, operations:0) then
             left
         else if (left.rest:0) == "." then
