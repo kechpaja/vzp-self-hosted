@@ -99,14 +99,14 @@ let parseObjectInternalList = (tokens, mutualRecParse) =>
             fail("Expected comma in parseObjectInternalList")
 
 let parseDotsAndCalls = (expr, tokens, mutualRecParse) =>
-    if (tokens:0) == "." then
+    if tokens.length > 0 && (tokens:0) == "." then
         if (tokens.length < 2) || (!isValidId(tokens:1)) then
             fail("Not a valid field lookup")
         else
             let next = { type: "field_access", obj: expr, field: (tokens:1) }
             recur(next, restOf(restOf(tokens)), mutualRecParse)
         /* TODO consider handling decimal numbers here? */
-    else if (tokens:0) == "(" then
+    else if tokens.length > 0 && (tokens:0) == "(" then
         let list = parseArgList(restOf(tokens), mutualRecParse)
         if !list.wellFormed || !checkFor(list.rest, ")") then
             fail("Issue parsing argument list in call")
@@ -262,7 +262,7 @@ let parse = (operations, tokens) =>
               rest: restOf(tokens),
               wellFormed: true }
         else
-            fail("There's something wrong with this token: " + (tokens:0))
+            fail("There's something wrong with this token: " + (tokens:0) + ":")
     else
         let left = recur(restOf(operations), tokens)
         if !left.wellFormed then fail(left.error) else

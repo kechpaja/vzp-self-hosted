@@ -4,11 +4,13 @@ import ast
 
 /* Obviously there's a lot to do here, such as IO */
 
-let program = IO.read("../tests/comprehensive/program.vzp")
+let program = IO.read(ENV.argv:2)
 
-/*print $ tokenize(program)*/
-let result = parse(program)
-if result.wellFormed then
-    print(ast.stringifyAst(result.ast))
+if (ENV.argv:1) == "tokenize" then
+    print $ tokenize(program)
 else
-    print(result.error)
+    let result = parse(program)
+    if result.wellFormed then
+        print(ast.stringifyAst(result.ast))
+    else
+        print(result.error)
