@@ -1,0 +1,7 @@
+import test_module as test
+import other_module
+
+if other_module.fieldWithBoolean then
+    test.field()
+else
+    print("bad")

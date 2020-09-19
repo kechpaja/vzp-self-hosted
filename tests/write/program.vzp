@@ -1,0 +1,2 @@
+let unused = IO.write("tests/write/written.txt", "STRING!")
+print(IO.read("tests/write/written.txt"))

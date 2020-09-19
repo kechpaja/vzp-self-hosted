@@ -1,0 +1,7 @@
+let fibs = (x) => /* A comment here */
+    if x < 2/*A comment here too */then
+        1
+    else
+        recur(x - 1) + recur(x - 2)/*Comment*/
+
+fibs(5)

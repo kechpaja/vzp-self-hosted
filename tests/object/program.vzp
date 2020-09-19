@@ -1,0 +1,2 @@
+let obj = { x: "A", y: "B" }
+print(obj.x + obj.y)

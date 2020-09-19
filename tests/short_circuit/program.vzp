@@ -1,0 +1,4 @@
+let array = []
+let x = true || (array:0)
+let y = false && (array:0)
+print("good")

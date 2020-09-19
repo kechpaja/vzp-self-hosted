@@ -1,0 +1,1 @@
+print(IO.read("tests/read/to_read.txt"))

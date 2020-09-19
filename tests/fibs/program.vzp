@@ -1,0 +1,7 @@
+let fibs = (x) =>
+    if x < 2 then
+        1
+    else
+        recur(x - 1) + recur(x - 2)
+
+fibs(5)
