@@ -19,6 +19,8 @@ let compile_js = (ast, isBound) =>
                                 + ":" + recTrue(ast.els) + ")"
     else if ast.type == "field_access" then
         recTrue(ast.obj) + "." + escapeId(ast.field)
+    else if ast.type == "import" then
+        "require(./'" + ast.module + ".js').vzpModule"
     else if ast.type == "lambda" then
         "(function(" + utils.join(escapeId $ ast.params) + "){" 
                      + recFalse(ast.body) + "})"
@@ -30,11 +32,11 @@ let compile_js = (ast, isBound) =>
         let f = (elem) => escapeId(elem.identifier) + ":" + recTrue(elem.value)
         "{" + utils.join(f $ ast.contents) + "}"
     else
-        "UNKNOWN"
+        "UNKNOWN" + ast.type
 
     if isBound then strExpr else "return " + strExpr + ";"
 
 (program_as_string) =>
-    "(function(){"
+    "module.exports={vzpModule:(function(){"
   + compile_js(optimize(program_as_string), false)
-  + "})();" /* TODO various args and such */ 
+  + "})()};" /* TODO various args and such */ 

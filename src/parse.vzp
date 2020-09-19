@@ -232,7 +232,7 @@ let parse = (operations, tokens) =>
                       wellFormed: true }
         else if utils.in(tokens:0, ["!", "-"]) then
             /* TODO allow unop as identifier*/
-            let expr = recur([], restOf(tokens))
+            let expr = recur([ [ ".", "(" ] ], restOf(tokens))
             if !expr.wellFormed then fail(expr.error) else
             let thisOp = (if tokens:0 == "-" then "unary -" else tokens:0)
             { ast: { type: "call",
