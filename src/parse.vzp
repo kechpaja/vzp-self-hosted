@@ -164,7 +164,7 @@ let parse = (operations, tokens) =>
                     if !checkFor(tokens:(4..(tokens.length-1)), ";") then
                         fail("Missing semicolon or newline in import")
                     else
-                        let body =recurWithFullOps(tokens:(5..(tokens.length-1)))
+                        let body=recurWithFullOps(tokens:(5..(tokens.length-1)))
                         if !body.wellFormed then fail(body.error) else
                         { ast: { type: "assignment",
                                  identifier: (tokens:3),
@@ -176,7 +176,7 @@ let parse = (operations, tokens) =>
                     if !checkFor(tokens:(2..(tokens.length-1)), ";") then
                         fail("Missing semicolon or newline in import")
                     else
-                        let body =recurWithFullOps(tokens:(2..(tokens.length-1)))
+                        let body=recurWithFullOps(tokens:(3..(tokens.length-1)))
                         if !body.wellFormed then fail(body.error) else
                         { ast: { type: "assignment",
                                  identifier: (tokens:1),

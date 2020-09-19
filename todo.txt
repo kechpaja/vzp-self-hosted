@@ -7,4 +7,9 @@ Start working on real parser I guess?
 After that I can start simplifying and optimizing stuff, and then figure out
 how to emit JavaScript and later LLVM.
 
-And not to mention typechecking, of course. 
+And not to mention typechecking, of course.
+
+
+Remember to use ulimit to set stack size limit, and --stack-size to node as
+well. Currently I can parse parse.vzp with a stack size of 75000 kb, although
+that will probably be higher for the later versions.  
