@@ -21,10 +21,10 @@ let compile_js = (ast, isBound, depth) =>
     else if ast.type == "field_access" then
         recTrue(ast.obj) + "." + escapeId(ast.field)
     else if ast.type == "import" then
-        "require(./'" + ast.module + ".js').vzpModule"
+        "require('./" + ast.module + ".js').vzpModule"
     else if ast.type == "lambda" then
         "(function () {"
-      + "function" + depthId + "(" + utils.join(escapeId $ ast.params) + "){"
+      + "function " + depthId + "(" + utils.join(escapeId $ ast.params) + "){"
                    + "let recur=" + depthId + ";" + recFalse(ast.body) + "}"
       + "return " + depthId + ";})()"
     else if ast.type == "lookup" then
