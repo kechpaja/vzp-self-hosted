@@ -31,7 +31,7 @@ syn keyword vzpConditional      if then else
 syn keyword vzpException        throw
 syn keyword vzpImport           import as
 syn keyword vzpKeyword          let
-syn keyword vzpReservedWord     recur self print IO
+syn keyword vzpReservedWord     recur self print IO ENV
 
 " Identifiers
 syn match vzpIdentifier "[a-zA-Z_][a-zA-Z0-9_]*"
