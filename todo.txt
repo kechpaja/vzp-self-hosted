@@ -1,9 +1,3 @@
-Finish tokenizer
-
-Add file reading capacity to main language so that I can run actual tests here
-
-Start working on real parser I guess?
-
 After that I can start simplifying and optimizing stuff, and then figure out
 how to emit JavaScript and later LLVM.
 
@@ -12,4 +6,15 @@ And not to mention typechecking, of course.
 
 Remember to use ulimit to set stack size limit, and --stack-size to node as
 well. Currently I can parse parse.vzp with a stack size of 75000 kb, although
-that will probably be higher for the later versions.  
+that will probably be higher for the later versions. 
+
+
+One thing we eventually need to do is re-configure the tokenizer so that a
+program of the form
+
+let f = +
+f(1,2)
+
+is regarded as acceptable. Basically, this means not automatically deleting the
+semicolon after + when it's preceded by =, but it's a low-priority change
+because you can get around it easily by putting the + in parentheses. 
