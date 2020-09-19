@@ -234,8 +234,9 @@ let parse = (operations, tokens) =>
             /* TODO allow unop as identifier*/
             let expr = recur([], restOf(tokens))
             if !expr.wellFormed then fail(expr.error) else
+            let thisOp = (if tokens:0 == "-" then "unary -" else tokens:0)
             { ast: { type: "call",
-                     func: { type: "lookup", identifier: (tokens:0) },
+                     func: { type: "lookup", identifier: thisOp },
                      args: [ expr.ast ] },
               rest: expr.rest,
               wellFormed: true }
