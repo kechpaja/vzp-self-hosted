@@ -11,4 +11,6 @@ let u = "This is a long string."
 /*TODO strings with \" in them */
 
 /* This needs to do something more interesting. */
-4<5||6<=6&&6>9&&!(7!=990)
+let v = 4<5||6<=6&&6>9&&!(7!=990)
+
+if v then something.try(["asdf","g"]) else {g:3}

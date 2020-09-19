@@ -39,6 +39,18 @@ let noFollowingExpr = (tokens) =>
     tokens.length == 0
  || utils.in(tokens:0, [";", ")", "}", "]", "then", "else"]) /* TODO binops */
 
+let parseParamList = (tokens) =>
+    if (tokens.length == 0) || ((tokens:0) == ")") then [] else
+    if (tokens.length >= 2) && isValidId(tokens:0) && ((tokens:1) == ")") then
+        { ast: [tokens:0], rest: restOf(tokens), wellFormed: true }
+    else
+        if !checkFor(restOf(tokens), ",") then { wellFormed: false } else
+        let laterParams = recur(restOf(restOf(tokens))) /* TODO catch bad IDs */
+        if !laterParams.wellFormed then { wellFormed: false } else
+        { ast: ([tokens:0] + laterParams.ast), 
+          rest: laterParams.rest, 
+          wellFormed: true }
+
 let parseArgList = (tokens, mutualRecParse) =>
     let listEnds = (tkns) =>
         ((tkns:0) == "]") || ((tkns:0) == ")") || ((tkns:0) == "}")
@@ -144,28 +156,34 @@ let parse = (operations, tokens) =>
                       wellFormed: true }
         else if tokens:0 == "import" then
             /* TODO consider allowing a string as the value you import from? */
-            if tokens.length < 2 || !isValidId(tokens:1) then
+            if tokens.length < 4 || !isValidId(tokens:1) then
                 fail("Malformed import statement")
             else
-                if (tokens.length >= 4) && ((tokens:2) == "as")
+                if (tokens.length >= 6) && ((tokens:2) == "as")
                                         && isValidId(tokens:3) then
-                    let body = recur(opsByPrec, tokens:(4..(tokens.length-1)))
-                    if !body.wellFormed then fail(body.error) else
-                    { ast: { type: "assignment",
-                             identifier: (tokens:3),
-                             value: { type: "import", module: (tokens:1) },
-                             body: body.ast },
-                      rest: body.rest,
-                      wellFormed: true }
+                    if !checkFor(tokens:(4..(tokens.length-1)), ";") then
+                        fail("Missing semicolon or newline in import")
+                    else
+                        let body =recurWithFullOps(tokens:(5..(tokens.length-1)))
+                        if !body.wellFormed then fail(body.error) else
+                        { ast: { type: "assignment",
+                                 identifier: (tokens:3),
+                                 value: { type: "import", module: (tokens:1) },
+                                 body: body.ast },
+                          rest: body.rest,
+                          wellFormed: true }
                 else
-                    let body = recur(opsByPrec, tokens:(2..(tokens.length-1)))
-                    if !body.wellFormed then fail(body.error) else
-                    { ast: { type: "assignment",
-                             identifier: (tokens:1),
-                             value: { type: "import", module: (tokens:1) },
-                             body: body.ast },
-                      rest: body.rest,
-                      wellFormed: true }
+                    if !checkFor(tokens:(2..(tokens.length-1)), ";") then
+                        fail("Missing semicolon or newline in import")
+                    else
+                        let body =recurWithFullOps(tokens:(2..(tokens.length-1)))
+                        if !body.wellFormed then fail(body.error) else
+                        { ast: { type: "assignment",
+                                 identifier: (tokens:1),
+                                 value: { type: "import", module: (tokens:1) },
+                                 body: body.ast },
+                          rest: body.rest,
+                          wellFormed: true }
         else if tokens:0 == "[" then
             let list = parseArgList(restOf(tokens), recurWithFullOps)
             if !list.wellFormed || ! checkFor(list.rest, "]") then
@@ -190,16 +208,16 @@ let parse = (operations, tokens) =>
                 { ast: { type: "lambda", params: [], body: body.ast },
                   rest: body.rest,
                   wellFormed: true }
-            else if tokens.length >= 4 && isValidId(tokens:1) 
-                           && ((tokens:2) == ","
-                            || ((tokens:2) == ")" && (tokens:3) == "=>")) then
+            else if (tokens.length >= 4) && isValidId(tokens:1) 
+                           && (((tokens:2) == ",")
+                          || (((tokens:2) == ")") && ((tokens:3) == "=>"))) then
                 let list = parseParamList(restOf(tokens))
                 if !list.wellFormed || !checkFor(list.rest, ")") then
                     fail("Problem with param list contents or final )")
                 else if !checkFor(restOf(list.rest), "=>") then
                     fail("Expected '=>' after param list of function")
                 else
-                    let body = recurWithFullOps(tokens:(2..(tokens.length-1)))
+                    let body = recurWithFullOps(restOf(restOf(list.rest)))
                     if !body.wellFormed then fail(body.error) else
                     { ast: { type: "lambda", params: list.ast, body: body.ast },
                       rest: body.rest,
@@ -252,24 +270,6 @@ let parse = (operations, tokens) =>
             left
         else if utils.in(left.rest:0, [".", "("]) then
             parseDotsAndCalls(left.ast, left.rest, recurWithFullOps)
-   /*     else if (left.rest:0) == "." then
-            if left.rest.length < 2 || !isValidId(left.rest:1) then
-                fail("Not a valid field lookup")
-            else
-                { ast: { type: "field_access",
-                         obj: left.ast,
-                         field: left.rest:1 },
-                  rest: restOf(restOf(left.rest)),
-                  wellFormed: true }
-            /* TODO consider handling decimal numbers here? */
-    /*    else if (left.rest:0) == "(" then
-            let list = parseArgList(restOf(left.rest), recurWithFullOps)
-            if !list.wellFormed || !checkFor(list.rest, ")") then
-                fail("Issue parsing argument list in call")
-            else
-                { ast: { type: "call", func: left.ast, args: list.ast },
-                  rest: restOf(list.rest),
-                  wellFormed: true } */
         else
             let right = recur(operations, restOf(left.rest))
             if !right.wellFormed then fail(right.error) else
