@@ -16,7 +16,7 @@ else if (ENV.argv:1) == "parse" then
     else
         print(result.error)
 else if (ENV.argv:1) == "compile" then
-    let stdlib = IO.read("./stdlib.js")
+    let stdlib = IO.read("./corefuncs.js")
     print(stdlib + compile(program))
 else
     print("Invalid option: " + (ENV.argv:1))
