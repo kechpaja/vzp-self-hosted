@@ -11,7 +11,7 @@ function _124__124_(left, right) {
         return left || right;
     }
 
-    throw "|| requires two booleans; got '" + left + "' and '" + right "' instead";
+    throw "|| requires two booleans; got '" + left + "' and '" + right + "' instead";
 }
 
 /* 
@@ -33,7 +33,7 @@ function _38__38_(left, right) {
         return left && right;
     }
 
-    throw "&& requires two booleans; got '" + left + "' and '" + right "' instead";
+    throw "&& requires two booleans; got '" + left + "' and '" + right + "' instead";
 }
 
 /* Short-Circuiting && (see above under "Short-Circuiting ||") */
@@ -178,7 +178,7 @@ function _36_(left, right) {
         return right.map(left);
     }
 
-    throw "$ expects a function and an array; got '" + left + "' and '" + right "' instead";
+    throw "$ expects a function and an array; got '" + left + "' and '" + right + "' instead";
 }
 
 /* @> */
@@ -247,7 +247,7 @@ function _46__46_(left, right) {
         return array;
     }
 
-    throw ".. requires two numbers; got '" + left + "' and '" + right "' instead";
+    throw ".. requires two numbers; got '" + left + "' and '" + right + "' instead";
 }
 
 /* ! */
