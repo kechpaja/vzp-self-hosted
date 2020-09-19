@@ -5,15 +5,16 @@ let escapeId = (id) =>
     let f = (c) => if utils.isAlnum(c) then [c] else "_" + utils.itoa(c) + "_"
     (+) <@ [] f $ id
 
-let compile_js = (ast, isBound) =>
-    let recTrue = let recFunc = recur; (x) => recFunc(x, true)
-    let recFalse = let recFunc = recur; (x) => recFunc(x, false)
+let compile_js = (ast, isBound, depth) =>
+    let recTrue = let recFunc = recur; (x) => recFunc(x, true, depth + 1)
+    let recFalse = let recFunc = recur; (x) => recFunc(x, false, depth + 1)
+    let depthId = "_0_" + utils.itoa(depth)
 
     /* Main block */
     let strExpr = if ast.type == "array" then
         "[" + utils.join(recTrue $ ast.contents) + "]"
     else if ast.type == "call" then
-        recur(ast.func, true) + "(" + utils.join(recTrue $ ast.args) + ")"
+        recTrue(ast.func) + "(" + utils.join(recTrue $ ast.args) + ")"
     else if ast.type == "conditional" then
         "(" + recTrue(ast.cond) + "?" + recTrue(ast.thn)
                                 + ":" + recTrue(ast.els) + ")"
@@ -22,8 +23,10 @@ let compile_js = (ast, isBound) =>
     else if ast.type == "import" then
         "require(./'" + ast.module + ".js').vzpModule"
     else if ast.type == "lambda" then
-        "(function(" + utils.join(escapeId $ ast.params) + "){" 
-                     + recFalse(ast.body) + "})"
+        "(function () {"
+      + "function" + depthId + "(" + utils.join(escapeId $ ast.params) + "){"
+                   + "let recur=" + depthId + ";" + recFalse(ast.body) + "}"
+      + "return " + depthId + ";})()"
     else if ast.type == "lookup" then
         escapeId(ast.identifier)
     else if ast.type == "number" then
@@ -38,5 +41,5 @@ let compile_js = (ast, isBound) =>
 
 (program_as_string) =>
     "module.exports={vzpModule:(function(){"
-  + compile_js(optimize(program_as_string), false)
+  + compile_js(optimize(program_as_string), false, 0)
   + "})()};" /* TODO various args and such */ 
