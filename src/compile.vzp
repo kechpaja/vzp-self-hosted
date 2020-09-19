@@ -11,37 +11,42 @@ let compile_js = (ast, isBound, depth) =>
     let recFalse = let recFunc = recur; (x) => recFunc(x, false, depth + 1)
     let depthId = "_0_" + utils.itoa(depth)
 
+    let wrap = (x) => if isBound then x else "return " + x + ";"
+
     /* Main block */
-    let strExpr = if ast.type == "array" then
-        "[" + utils.join(recTrue $ ast.contents) + "]"
+    if ast.type == "array" then
+        wrap("[" + utils.join(recTrue $ ast.contents) + "]")
+    else if ast.type == "assignment" then
+        "let " + escapeId(ast.identifier) + "=" + recTrue(ast.value) + ";" 
+                                                + recFalse(ast.body)
     else if ast.type == "call" then
-        recTrue(ast.func) + "(" + utils.join(recTrue $ ast.args) + ")"
+        wrap(recTrue(ast.func) + "(" + utils.join(recTrue $ ast.args) + ")")
     else if ast.type == "conditional" then
-        "(" + recTrue(ast.cond) + "?" + recTrue(ast.thn)
-                                + ":" + recTrue(ast.els) + ")"
+        wrap("(" + recTrue(ast.cond) + "?" + recTrue(ast.thn)
+                                + ":" + recTrue(ast.els) + ")")
     else if ast.type == "field_access" then
         if ast.field == "length" then /* TODO this will not work long term */
-            recTrue(ast.obj) + ".length"
+            wrap(recTrue(ast.obj) + ".length")
         else
-            recTrue(ast.obj) + "." + escapeId(ast.field)
+            wrap(recTrue(ast.obj) + "." + escapeId(ast.field))
     else if ast.type == "import" then
-        "require('./" + ast.module + ".js').vzpModule"
+        wrap("require('./" + ast.module + ".js').vzpModule")
     else if ast.type == "lambda" then
-        "(function () {"
+        wrap("(function () {"
       + "function " + depthId + "(" + utils.join(escapeId $ ast.params) + "){"
                    + "let _recur=" + depthId + ";" + recFalse(ast.body) + "}"
-      + "return " + depthId + ";})()"
+      + "return " + depthId + ";})()")
     else if ast.type == "lookup" then
-        escapeId(ast.identifier)
+        wrap(escapeId(ast.identifier))
     else if ast.type == "number" then
-        utils.itoa(ast.value)
+        wrap(utils.itoa(ast.value))
     else if ast.type == "object" then
         let f = (elem) => escapeId(elem.identifier) + ":" + recTrue(elem.value)
-        "{" + utils.join(f $ ast.contents) + "}"
+        wrap("{" + utils.join(f $ ast.contents) + "}")
+    else if ast.type == "funcwrap" then
+        wrap("(function(){" + recFalse(ast.body) + "})()");
     else
         "UNKNOWN" + ast.type
-
-    if isBound then strExpr else "return " + strExpr + ";"
 
 (program_as_string) =>
     "module.exports={vzpModule:(function(){"

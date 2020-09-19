@@ -165,7 +165,7 @@ function __47_(left, right) {
 
 /* % */
 function __37_(left, right) {
-    if (typeof left === "number" && typeof right === "numeber") {
+    if (typeof left === "number" && typeof right === "number") {
         return left % right;
     }
 
