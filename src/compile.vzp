@@ -1,5 +1,36 @@
 import optimize
+import utils
 
-let compile_main = (ast) => ""
+let escapeId = (id) =>
+    let f = (c) => if utils.isAlnum(c) then [c] else "_" + utils.itoa(c) + "_"
+    (+) <@ [] f $ id
 
-(program_as_string) => compile_main(optimize(program_as_string))
+let compile_js = (ast, isBound) =>
+    let recurTrue = let recFunc = recur; (x) => recFunc(x, true)
+
+    let wrapUnbound = (expr) => 
+        if !isBound then "return " + expr + ";" else expr
+
+    /* Main block */
+    if ast.type == "array" then
+        wrapUnbound("[" + utils.join(recurTrue $ ast.contents) + "]")
+    else if ast.type == "call" then
+        wrapUnbound(recur(ast.func, true) + "(" 
+                        + utils.join(recurTrue $ ast.args) + ")")
+    else if ast.type == "conditional" then
+        wrapUnbound("(" + recurTrue(ast.cond) + "?" + recurTrue(ast.thn)
+                                              + ":" + recurTrue(ast.els) + ")")
+    else if ast.type == "lambda" then
+        wrapUnbound("(function(" + utils.join(ast.params) + "){"
+                                 + recur(ast.body, false) + "})")
+    else if ast.type == "lookup" then
+        wrapUnbound(escapeId(ast.identifier))
+    else if ast.type == "number" then
+        wrapUnbound(utils.itoa(ast.value))
+    else
+        "UNKNOWN"
+
+(program_as_string) =>
+    "(function(){"
+  + compile_js(optimize(program_as_string), false)
+  + "})();" /* TODO various args and such */ 

@@ -1,5 +1,21 @@
 import typecheck
 
-let optimize_main = (ast) => ast
+let optimize_main = (ast) =>
+    if ast.type == "array" then
+        { type: "array",
+          contents: (recur $ ast.contents) }
+    else if ast.type == "assignment" then
+        { type: "call",
+          func: { type: "lambda",
+                  params: [ ast.identifier ],
+                  body: recur(ast.body) },
+          args: [ recur(ast.value) ] }
+    else if ast.type == "conditional" then
+        { type: "conditional",
+          cond: recur(ast.cond),
+          thn: recur(ast.thn),
+          els: recur(ast.els) }
+    else
+        ast
 
 (program_as_string) => optimize_main(typecheck(program_as_string))

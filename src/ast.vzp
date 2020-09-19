@@ -1,8 +1,5 @@
 import utils
 
-let pseudoJoin = (alos) =>
-    ((x, y) => (if y == "" then x else x + ", " + y)) @> alos ""
-
 let stringifyAst = (ast) =>
     if ast.type == "conditional" then
         "(if " + recur(ast.cond) + " then " + recur(ast.thn) + " else " + recur(ast.els) + ")"
@@ -11,12 +8,12 @@ let stringifyAst = (ast) =>
     else if ast.type == "lookup" then
         ast.identifier
     else if ast.type == "array" then
-        "[" + pseudoJoin(recur $ ast.contents) + "]"
+        "[" + utils.join(recur $ ast.contents) + "]"
     else if ast.type == "object" then
         let recFunc = recur
-        "{" + pseudoJoin(((x) => x.identifier + ": " + recFunc(x.value)) $ ast.contents) + "}"
+        "{" + utils.join(((x) => x.identifier + ": " + recFunc(x.value)) $ ast.contents) + "}"
     else if ast.type == "call" then
-        recur(ast.func) + "(" + pseudoJoin(recur $ ast.args) + ")"
+        recur(ast.func) + "(" + utils.join(recur $ ast.args) + ")"
     else if ast.type == "import" then
         "(import " + ast.module + ")"
     else if ast.type == "assignment" then
@@ -24,7 +21,7 @@ let stringifyAst = (ast) =>
     else if ast.type == "field_access" then
         "(field_access " + recur(ast.obj) + " " + ast.field + ")"
     else if ast.type == "lambda" then
-        "(lambda " + pseudoJoin(ast.params) + " => " + recur(ast.body) + ")"
+        "(lambda " + utils.join(ast.params) + " => " + recur(ast.body) + ")"
     else
         "UNKNOWN"
 

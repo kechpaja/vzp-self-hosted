@@ -9,4 +9,15 @@ let itoa = (number) =>
 let in = (x, collection) =>
     || @> ((y) => x == y) $ collection false
 
-{ atoi: atoi, itoa: itoa, in: in }
+let join = (alos) =>
+    ((x, y) => (if y == "" then x else x + ", " + y)) @> alos ""
+
+
+let isDigit = (c) => c <= 57 && c >= 48
+
+let isAlpha = (c) => (c <= 90 && c >= 65) || (c <= 122 && c >= 97)
+
+let isAlnum = (c) => isDigit(c) || isAlpha(c)
+
+
+{ atoi: atoi, itoa: itoa, in: in, isAlnum: isAlnum, join: join }

@@ -1,3 +1,4 @@
+import compile
 import parse
 import tokenize
 import ast
@@ -8,9 +9,13 @@ let program = IO.read(ENV.argv:2)
 
 if (ENV.argv:1) == "tokenize" then
     print $ tokenize(program)
-else
+else if (ENV.argv:1) == "parse" then
     let result = parse(program)
     if result.wellFormed then
         print(ast.stringifyAst(result.ast))
     else
         print(result.error)
+else if (ENV.argv:1) == "compile" then
+    print(compile(program))
+else
+    print("Invalid option: " + (ENV.argv:1))
