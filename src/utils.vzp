@@ -2,8 +2,11 @@
 let atoi = (string) =>
     ((x, y) => ((x * 10) + (y - 48))) <@ 0 string
 
+let itoa = (number) =>
+    (if number > 10 then recur(number / 10) else "") + [(number % 10) + 48]
+
 /* TODO inefficient */
 let in = (x, collection) =>
     || @> ((y) => x == y) $ collection false
 
-{ atoi: atoi, in: in }
+{ atoi: atoi, itoa: itoa, in: in }

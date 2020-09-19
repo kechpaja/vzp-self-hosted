@@ -1,3 +1,5 @@
+import utils
+
 let pseudoJoin = (alos) =>
     ((x, y) => (if y == "" then x else x + ", " + y)) @> alos ""
 
@@ -5,7 +7,7 @@ let stringifyAst = (ast) =>
     if ast.type == "conditional" then
         "(if " + recur(ast.cond) + " then " + recur(ast.thn) + " else " + recur(ast.els) + ")"
     else if ast.type == "number" then
-        "NUMBER" /* ast.value TODO itoa() */
+        utils.itoa(ast.value)
     else if ast.type == "lookup" then
         ast.identifier
     else if ast.type == "array" then
