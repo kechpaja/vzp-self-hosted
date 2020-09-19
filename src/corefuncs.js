@@ -5,17 +5,79 @@
 
 /* || */
 function _124__124_(left, right) {
-    // TODO
+    if (typeof left === "boolean" && typeof right === "boolean") {
+        return left || right;
+    }
+
+    throw "|| requires two booleans; got '" + left + "' and '" + right "' instead";
+}
+
+/* 
+ * Short-Circuiting || 
+ * The parser will replace the arguments with functions that take no
+ * arguments, allowing their evaluation to be deferred.
+ */
+function short_32_circuit_124__124_(left, right) {
+    if (typeof left === "function" && typeof right === "function") {
+        return left() || right();
+    }
+
+    throw "You shouldn't see this error.";
 }
 
 /* && */
 function _38__38_(left, right) {
-    // TODO
+    if (typeof left === "boolean" && typeof right === "boolean") {
+        return left && right;
+    }
+
+    throw "&& requires two booleans; got '" + left + "' and '" + right "' instead";
+}
+
+/* Short-Circuiting && (see above under "Short-Circuiting ||") */
+function short_32_circuit_38__38_(left, right) {
+    if (typeof left === "function" && typeof right === "function") {
+        return left() && right();
+    }
+
+    throw "You shouldn't see this error.";
 }
 
 /* == */
 function _61__61_(left, right) {
-    // TODO
+    if (left === right) {
+        return true;
+    }
+
+    if (typeof left === "object" && typeof right === "object") {
+        if (Object.keys(left).length !== Object.keys(right).length) {
+            return false;
+        }
+
+        for (let key in left) {
+            // Since JS returns undefined when a key isn't found, this should
+            // also catch discrepencies between the sets of keys.
+            if (left.hasOwnProperty(key) && left[key] !== right[key]) {
+                return false;
+            }
+        }
+    }
+
+    if (Array.isArray(left) && Array.isArray(right)) {
+        if (left.length != right.length) {
+            return false;
+        }
+
+        for (let i = 0; i < left.length; i++) {
+            if (!_61__61_(left[i], right[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    return false; // Easier than worrying about when to fail
 }
 
 /* != */
@@ -110,7 +172,11 @@ function _37_(left, right) {
 
 /* $ */
 function _36_(left, right) {
-    // TODO
+    if (typeof left === "function" && Array.isArray(right)) {
+        return right.map(left);
+    }
+
+    throw "$ expects a function and an array; got '" + left + "' and '" + right "' instead";
 }
 
 /* @> */
@@ -130,7 +196,28 @@ function _58_(left, right) {
 
 /* .. */
 function _46__46_(left, right) {
-    // TODO
+    if (typeof left === "number" && typeof right === "number") {
+        let num = left;
+        let array = [];
+
+        if (left < right) {
+            while (num <= right) {
+                array.push(num);
+                num += 1;
+            }
+        } else if (left > right) {
+            while (num >= right) {
+                array.push(num);
+                num -= 1;
+            }
+        } else {
+            array.push(num);
+        }
+
+        return array;
+    }
+
+    throw ".. requires two numbers; got '" + left + "' and '" + right "' instead";
 }
 
 /* ! */
