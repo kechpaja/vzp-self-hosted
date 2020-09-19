@@ -6,7 +6,7 @@
 const fs = require("fs");
 
 /* || */
-function _124__124_(left, right) {
+function __124__124_(left, right) {
     if (typeof left === "boolean" && typeof right === "boolean") {
         return left || right;
     }
@@ -19,7 +19,7 @@ function _124__124_(left, right) {
  * The parser will replace the arguments with functions that take no
  * arguments, allowing their evaluation to be deferred.
  */
-function short_32_circuit_124__124_(left, right) {
+function _short_32_circuit_124__124_(left, right) {
     if (typeof left === "function" && typeof right === "function") {
         return left() || right();
     }
@@ -28,7 +28,7 @@ function short_32_circuit_124__124_(left, right) {
 }
 
 /* && */
-function _38__38_(left, right) {
+function __38__38_(left, right) {
     if (typeof left === "boolean" && typeof right === "boolean") {
         return left && right;
     }
@@ -37,7 +37,7 @@ function _38__38_(left, right) {
 }
 
 /* Short-Circuiting && (see above under "Short-Circuiting ||") */
-function short_32_circuit_38__38_(left, right) {
+function _short_32_circuit_38__38_(left, right) {
     if (typeof left === "function" && typeof right === "function") {
         return left() && right();
     }
@@ -46,7 +46,7 @@ function short_32_circuit_38__38_(left, right) {
 }
 
 /* == */
-function _61__61_(left, right) {
+function __61__61_(left, right) {
     if (left === right) {
         return true;
     }
@@ -71,7 +71,7 @@ function _61__61_(left, right) {
         }
 
         for (let i = 0; i < left.length; i++) {
-            if (!_61__61_(left[i], right[i])) {
+            if (!__61__61_(left[i], right[i])) {
                 return false;
             }
         }
@@ -83,12 +83,12 @@ function _61__61_(left, right) {
 }
 
 /* != */
-function _33__61_(left, right) {
-    return !_61__61_(left, right);
+function __33__61_(left, right) {
+    return !__61__61_(left, right);
 }
 
 /* < */
-function _60_(left, right) {
+function __60_(left, right) {
     if (typeof left === "number" && typeof right === "number") {
         return left < right;
     }
@@ -97,7 +97,7 @@ function _60_(left, right) {
 }
 
 /* <= */
-function _60__61_(left, right) {
+function __60__61_(left, right) {
     if (typeof left === "number" && typeof right === "number") {
         return left <= right;
     }
@@ -106,7 +106,7 @@ function _60__61_(left, right) {
 }
 
 /* > */
-function _62_(left, right) {
+function __62_(left, right) {
     if (typeof left === "number" && typeof right === "number") {
         return left > right;
     }
@@ -115,7 +115,7 @@ function _62_(left, right) {
 }
 
 /* >= */
-function _62__61_(left, right) {
+function __62__61_(left, right) {
     if (typeof left === "number" && typeof right === "number") {
         return left >= right;
     }
@@ -124,7 +124,7 @@ function _62__61_(left, right) {
 }
 
 /* + */
-function _43_(left, right) {
+function __43_(left, right) {
     if (typeof left === "number" && typeof right === "number") {
         return left + right;
     }
@@ -137,7 +137,7 @@ function _43_(left, right) {
 }
 
 /* - */
-function _45_(left, right) {
+function __45_(left, right) {
     if (typeof left === "number" && typeof right === "number") {
         return left - right;
     }
@@ -146,7 +146,7 @@ function _45_(left, right) {
 }
 
 /* * */
-function _42_(left, right) {
+function __42_(left, right) {
     if (typeof left === "number" && typeof right === "number") {
         return left * right;
     }
@@ -155,7 +155,7 @@ function _42_(left, right) {
 }
 
 /* / */
-function _47_(left, right) {
+function __47_(left, right) {
     if (typeof left === "number" && typeof right === "number") {
         return Math.floor(left / right);
     }
@@ -164,7 +164,7 @@ function _47_(left, right) {
 }
 
 /* % */
-function _37_(left, right) {
+function __37_(left, right) {
     if (typeof left === "number" && typeof right === "numeber") {
         return left % right;
     }
@@ -173,7 +173,7 @@ function _37_(left, right) {
 }
 
 /* $ */
-function _36_(left, right) {
+function __36_(left, right) {
     if (typeof left === "function" && Array.isArray(right)) {
         return right.map(left);
     }
@@ -182,7 +182,7 @@ function _36_(left, right) {
 }
 
 /* @> */
-function _64__62_(one, two, three) {
+function __64__62_(one, two, three) {
     if (typeof one === "function" && Array.isArray(two)) {
         let acc = three;
         two.concat([]).reverse().forEach(function (x) {
@@ -196,7 +196,7 @@ function _64__62_(one, two, three) {
 }
 
 /* <@ */
-function _60__64_(one, two, three) {
+function __60__64_(one, two, three) {
     if (typeof one === "function" && Array.isArray(three)) {
         let acc = two;
         three.forEach(function (x) {
@@ -210,7 +210,7 @@ function _60__64_(one, two, three) {
 }
 
 /* : */
-function _58_(left, right) {
+function __58_(left, right) {
     if (Array.isArray(left)) {
         if (typeof right === "number") {
             return left[right];
@@ -225,7 +225,7 @@ function _58_(left, right) {
 }
 
 /* .. */
-function _46__46_(left, right) {
+function __46__46_(left, right) {
     if (typeof left === "number" && typeof right === "number") {
         let num = left;
         let array = [];
@@ -251,7 +251,7 @@ function _46__46_(left, right) {
 }
 
 /* ! */
-function _33_(arg) {
+function __33_(arg) {
     if (typeof arg === "boolean") {
         return !arg;
     }
@@ -260,7 +260,7 @@ function _33_(arg) {
 }
 
 /* unary - */
-function unary_32__45_(arg) {
+function _unary_32__45_(arg) {
     if (typeof arg === "number") {
         return -arg;
     }
@@ -269,7 +269,7 @@ function unary_32__45_(arg) {
 }
 
 /* print() */
-function print(arg) {
+function _print(arg) {
     if (Array.isArray(arg)) { // TODO check that it's an array of numbers
         console.log(String.fromCodePoint.apply(this, arg));
         return arg; // TODO ???
@@ -280,19 +280,21 @@ function print(arg) {
 
 
 /* ENV environment stuff (currently just argv) */
-const ENV = {
-    argv: process.argv
+const _ENV = {
+    _argv: process.argv.splice(1).map(function (s) { /* XXX This assumes node */
+        return s.split("").map(function (x) { return x.codePointAt(); });
+    })
 }
 
 /* IO functions */
-const IO = {
-    read: function (path) {
+const _IO = {
+    _read: function (path) {
         return fs.readFileSync(
             String.fromCodePoint.apply(this, path), 
             "utf8"
         ).split("").map(function (x) { return x.codePointAt(); });
     },
-    write: function (path, data) {
+    _write: function (path, data) {
         // TODO error checking?
 
         let pathString = String.fromCodePoint.apply(this, path);

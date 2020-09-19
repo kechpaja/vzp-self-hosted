@@ -2,8 +2,9 @@ import optimize
 import utils
 
 let escapeId = (id) =>
+    if utils.in(id, ["true", "false"]) then id else
     let f = (c) => if utils.isAlnum(c) then [c] else "_" + utils.itoa(c) + "_"
-    (+) <@ [] f $ id
+    "_" + ((+) <@ [] f $ id)
 
 let compile_js = (ast, isBound, depth) =>
     let recTrue = let recFunc = recur; (x) => recFunc(x, true, depth + 1)
@@ -19,13 +20,16 @@ let compile_js = (ast, isBound, depth) =>
         "(" + recTrue(ast.cond) + "?" + recTrue(ast.thn)
                                 + ":" + recTrue(ast.els) + ")"
     else if ast.type == "field_access" then
-        recTrue(ast.obj) + "." + escapeId(ast.field)
+        if ast.field == "length" then /* TODO this will not work long term */
+            recTrue(ast.obj) + ".length"
+        else
+            recTrue(ast.obj) + "." + escapeId(ast.field)
     else if ast.type == "import" then
         "require('./" + ast.module + ".js').vzpModule"
     else if ast.type == "lambda" then
         "(function () {"
       + "function " + depthId + "(" + utils.join(escapeId $ ast.params) + "){"
-                   + "let recur=" + depthId + ";" + recFalse(ast.body) + "}"
+                   + "let _recur=" + depthId + ";" + recFalse(ast.body) + "}"
       + "return " + depthId + ";})()"
     else if ast.type == "lookup" then
         escapeId(ast.identifier)
