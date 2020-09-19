@@ -6,29 +6,33 @@ let escapeId = (id) =>
     (+) <@ [] f $ id
 
 let compile_js = (ast, isBound) =>
-    let recurTrue = let recFunc = recur; (x) => recFunc(x, true)
-
-    let wrapUnbound = (expr) => 
-        if !isBound then "return " + expr + ";" else expr
+    let recTrue = let recFunc = recur; (x) => recFunc(x, true)
+    let recFalse = let recFunc = recur; (x) => recFunc(x, false)
 
     /* Main block */
-    if ast.type == "array" then
-        wrapUnbound("[" + utils.join(recurTrue $ ast.contents) + "]")
+    let strExpr = if ast.type == "array" then
+        "[" + utils.join(recTrue $ ast.contents) + "]"
     else if ast.type == "call" then
-        wrapUnbound(recur(ast.func, true) + "(" 
-                        + utils.join(recurTrue $ ast.args) + ")")
+        recur(ast.func, true) + "(" + utils.join(recTrue $ ast.args) + ")"
     else if ast.type == "conditional" then
-        wrapUnbound("(" + recurTrue(ast.cond) + "?" + recurTrue(ast.thn)
-                                              + ":" + recurTrue(ast.els) + ")")
+        "(" + recTrue(ast.cond) + "?" + recTrue(ast.thn)
+                                + ":" + recTrue(ast.els) + ")"
+    else if ast.type == "field_access" then
+        recTrue(ast.obj) + "." + escapeId(ast.field)
     else if ast.type == "lambda" then
-        wrapUnbound("(function(" + utils.join(ast.params) + "){"
-                                 + recur(ast.body, false) + "})")
+        "(function(" + utils.join(escapeId $ ast.params) + "){" 
+                     + recFalse(ast.body) + "})"
     else if ast.type == "lookup" then
-        wrapUnbound(escapeId(ast.identifier))
+        escapeId(ast.identifier)
     else if ast.type == "number" then
-        wrapUnbound(utils.itoa(ast.value))
+        utils.itoa(ast.value)
+    else if ast.type == "object" then
+        let f = (elem) => escapeId(elem.identifier) + ":" + recTrue(elem.value)
+        "{" + utils.join(f $ ast.contents) + "}"
     else
         "UNKNOWN"
+
+    if isBound then strExpr else "return " + strExpr + ";"
 
 (program_as_string) =>
     "(function(){"
