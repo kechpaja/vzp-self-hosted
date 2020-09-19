@@ -16,4 +16,7 @@ f(1,2)
 
 is regarded as acceptable. Basically, this means not automatically deleting the
 semicolon after + when it's preceded by =, but it's a low-priority change
-because you can get around it easily by putting the + in parentheses. 
+because you can get around it easily by putting the + in parentheses.
+
+
+Make sure short circuiting works.  
