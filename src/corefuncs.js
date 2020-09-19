@@ -3,6 +3,8 @@
  * function names must be in escaped form.
  */
 
+const fs = require("fs");
+
 /* || */
 function _124__124_(left, right) {
     if (typeof left === "boolean" && typeof right === "boolean") {
@@ -181,17 +183,45 @@ function _36_(left, right) {
 
 /* @> */
 function _64__62_(one, two, three) {
-    // TODO
+    if (typeof one === "function" && Array.isArray(two)) {
+        let acc = three;
+        two.concat([]).reverse().forEach(function (x) {
+            acc = one(x, acc);
+        });
+
+        return acc;
+    }
+
+    throw "Type issue in fold right";
 }
 
 /* <@ */
 function _60__64_(one, two, three) {
-    // TODO
+    if (typeof one === "function" && Array.isArray(three)) {
+        let acc = two;
+        three.forEach(function (x) {
+            acc = one(acc, x);
+        });
+
+        return acc;
+    }
+
+    throw "Type issue in fold left";
 }
 
 /* : */
 function _58_(left, right) {
-    // TODO
+    if (Array.isArray(left)) {
+        if (typeof right === "number") {
+            return left[right];
+        }
+
+        if (Array.isArray(right)) { // TODO check that it's an array of numbers
+            return right.map(function (x) { return left[x]; });
+        }
+    }
+
+    throw ": requires an array and a number or array; got '" + left + "' and '" + right + "' instead";
 }
 
 /* .. */
@@ -257,9 +287,17 @@ const ENV = {
 /* IO functions */
 const IO = {
     read: function (path) {
-        // TODO
+        return fs.readFileSync(
+            String.fromCodePoint.apply(this, path), 
+            "utf8"
+        ).split("").map(function (x) { return x.codePointAt(); });
     },
     write: function (path, data) {
-        // TODO
+        // TODO error checking?
+
+        let pathString = String.fromCodePoint.apply(this, path);
+        let dataString = String.fromCodePoint.apply(this, data);
+        fs.writeFileSync(path, data, "utf8");
+        return data;
     }
 }
