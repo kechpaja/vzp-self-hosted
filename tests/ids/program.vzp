@@ -1,2 +1,2 @@
-let x = 6
-x
+let x = 54
+print([x])

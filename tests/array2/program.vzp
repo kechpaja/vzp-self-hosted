@@ -1,1 +1,2 @@
-[ 1 ,  2      ]  +      [3] /* Also checking that whitespace is handled right */
+let f = (x, y) => [x, y]
+if f(5, 6) == [5, 6] then print("true") else print("false")

@@ -4,4 +4,4 @@ let fibs = (x) => /* A comment here */
     else
         recur(x - 1) + recur(x - 2)/*Comment*/
 
-fibs(5)
+if fibs(5) == 8 then print("8") else print("bad")

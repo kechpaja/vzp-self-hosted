@@ -1,2 +1,2 @@
 let f = (+)
-f(5,4)
+if f(5,4) == 9 then print("9") else print("asdf")

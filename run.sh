@@ -1,10 +1,12 @@
 #! /bin/sh
 
 if [[ "$3" == "" ]]; then
-    echo "Usage: ./run.sh <version> <action> <input_file>";
+    >&2 echo "Usage: ./run.sh <version> <action> <input_file>";
     exit 1
 fi
 
-compiler="$(dirname $(readlink -f $0))/versions/$1/main.js"
+argfile="$(readlink -f $3)"
 
-node "$compiler" "$2" "$(readlink -f $3)"
+cd "$(dirname $(readlink -f $0))/versions/$1"
+
+node main.js "$2" "$argfile"

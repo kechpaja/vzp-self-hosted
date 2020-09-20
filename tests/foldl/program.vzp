@@ -1,1 +1,1 @@
-((x, y) => x - y) <@ 0 [1, 2, 3]
+if (((x, y) => x - y) <@ 0 [1, 2, 3]) == -6 then print("-6") else print("asdf")

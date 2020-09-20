@@ -1,1 +1,1 @@
-4-1
+if 4-1 == 3 then print("3") else print("FAIL!")
