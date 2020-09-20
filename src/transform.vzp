@@ -68,7 +68,7 @@ let wrapFunc = (x) =>
     else
         x
 
-let optimize_main = (ast) =>
+let transform_main = (ast) =>
     if ast.type == "array" then
         { type: "array",
           contents: (wrapFunc $ (recur $ ast.contents)) }
@@ -123,4 +123,4 @@ let optimize_main = (ast) =>
     else
         ast
 
-(program_as_string) => optimize_main(uniqueIds(typecheck(program_as_string)))
+(program_as_string) => transform_main(uniqueIds(typecheck(program_as_string)))

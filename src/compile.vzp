@@ -1,4 +1,4 @@
-import optimize
+import transform
 import utils
 
 let escapeId = (id) =>
@@ -50,5 +50,5 @@ let compile_js = (ast, isBound, depth) =>
 
 (program_as_string) =>
     "module.exports={vzpModule:(function(){"
-  + compile_js(optimize(program_as_string), false, 0)
+  + compile_js(transform(program_as_string), false, 0)
   + "})()};" /* TODO various args and such */ 
