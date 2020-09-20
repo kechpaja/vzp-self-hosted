@@ -69,9 +69,35 @@ let wrapFunc = (x) =>
         x
 
 let transform_main = (ast) =>
+    let argRec = (origArgs, newArgs, bottomFunc) =>
+        if origArgs.length == 0 then
+            bottomFunc(newArgs)
+        else if (origArgs:0).type == "assignment" then
+            { type: "assignment",
+              identifier: (origArgs:0).identifier,
+              value: (origArgs:0).value,
+              body: recur(restOf(origArgs),
+                          newArgs + [(origArgs:0).body],
+                          bottomFunc) }
+        else if (origArgs:0).type == "conditional" then
+            { type: "conditional",
+              cond: (origArgs:0).cond,
+              thn: recur(restOf(origArgs),
+                         newArgs + [(origArgs:0).thn],
+                         bottomFunc),
+              els: recur(restOf(origArgs),
+                         newArgs + [(origArgs:0).els],
+                         bottomFunc) }
+        else
+            recur(restOf(origArgs), newArgs + origArgs:[0], bottomFunc)
+
     if ast.type == "array" then
-        { type: "array",
-          contents: (wrapFunc $ (recur $ ast.contents)) }
+        if || @> (((x) => x.type == "assignment" 
+                       || x.type == "conditional") $ ast.contents) false then
+            recur(argRec(ast.contents, [], (contents) => { type: "array",
+                                                           contents: contents}))
+        else
+            { type: "array", contents: recur $ ast.contents }
     else if ast.type == "assignment" then
         if ast.value.type == "assignment" then
             let innerAssn = uniqueIds(ast.value)
