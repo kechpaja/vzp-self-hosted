@@ -1,2 +1,3 @@
 versions/*
 tests/*/*.js
+node_modules/*

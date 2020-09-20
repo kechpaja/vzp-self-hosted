@@ -7,6 +7,6 @@ fi
 
 argfile="$(readlink -f $3)"
 
-cd "$(dirname $(readlink -f $0))/versions/$1"
+cd "$(dirname "$(readlink -f "$0")")/versions/$1"
 
-node --stack-size=9000 main.js "$2" "$argfile"
+node --stack-size=9000 vzp.js "$2" "$argfile"
