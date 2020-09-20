@@ -123,7 +123,7 @@ let transform_main = (ast) =>
                            value: ast.value.els,
                            body: ast.body } })
         else
-            { type: "assignment",
+            { type: "js-assignment",
               identifier: ast.identifier,
               value: recur(ast.value),
               body: recur(ast.body) }
