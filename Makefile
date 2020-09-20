@@ -1,9 +1,7 @@
 NODEJS 		= node
 RUN			= ./run.sh
 
-default: test
-
-# TODO allow us to use this file to actually compile!
+default: build
 
 build: src/*.vzp src/corefuncs.js
 	@if [[ "$$PREV_VERSION" == "" ]]; then \
@@ -12,18 +10,18 @@ build: src/*.vzp src/corefuncs.js
 	if [[ "$$VERSION" == "" ]]; then \
 		VERSION="00-testing"; \
 	fi; \
-	mkdir -p versions/$$VERSION/staging \
+	mkdir -p versions/$$VERSION/staging; \
 	for f in src/*.vzp; do \
 		f_nodir="$${f##*/}"; \
 		$(RUN) "$$PREV_VERSION" compile "$$f" > "versions/$$VERSION/staging/$${f_nodir/.vzp/.js}"; \
 	done; \
-	cp src/*.js "$$VERSION/staging/"; \
+	cp src/*.js "versions/$$VERSION/staging/"; \
 	for f in src/*.vzp; do \
 		f_nodir="$${f##*/}"; \
 		$(RUN) "$$VERSION/staging" compile "$$f" > "versions/$$VERSION/$${f_nodir/.vzp/.js}"; \
 	done; \
-	cp src/*.js "$$VERSION/"; \
-	$(RM) -rf "$$VERSION/staging"
+	cp src/*.js "versions/$$VERSION/"; \
+	$(RM) -rf "versions/$$VERSION/staging"
 
 test: build
 	@echo "=================================================="
