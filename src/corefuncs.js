@@ -299,7 +299,7 @@ const _IO = {
 
         let pathString = String.fromCodePoint.apply(this, path);
         let dataString = String.fromCodePoint.apply(this, data);
-        fs.writeFileSync(path, data, "utf8");
+        fs.writeFileSync(pathString, dataString, "utf8");
         return data;
     }
 }
