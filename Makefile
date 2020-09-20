@@ -43,3 +43,6 @@ test: build
 	done; \
 	$(RM) -f tests/*/*.js \
 	$(RM) -f tests/write/written.txt
+
+clean:
+	$(RM) -rf versions/00-testing

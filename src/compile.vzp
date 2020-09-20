@@ -21,14 +21,14 @@ let compile_js = (ast, isBound, depth) =>
                                                 + recFalse(ast.body)
     else if ast.type == "call" then
         wrap(recTrue(ast.func) + "(" + utils.join(recTrue $ ast.args) + ")")
-    else if ast.type == "conditional" then
-        wrap("(" + recTrue(ast.cond) + "?" + recTrue(ast.thn)
-                                + ":" + recTrue(ast.els) + ")")
     else if ast.type == "field_access" then
         if ast.field == "length" then /* TODO this will not work long term */
             wrap(recTrue(ast.obj) + ".length")
         else
             wrap(recTrue(ast.obj) + "." + escapeId(ast.field))
+    else if ast.type == "js-conditional" then
+        "if(" + recTrue(ast.cond) + "){" + recFalse(ast.thn) + "}else{"
+                                         + recFalse(ast.els) + "}"
     else if ast.type == "import" then
         wrap("require('./" + ast.module + ".js').vzpModule")
     else if ast.type == "lambda" then

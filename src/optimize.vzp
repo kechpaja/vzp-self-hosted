@@ -1,7 +1,10 @@
 import typecheck
 
 let wrapFunc = (x) =>
-    if x.type == "assignment" then { type: "funcwrap", body: x } else x
+    if x.type == "assignment" || x.type == "js-conditional" then
+        { type: "funcwrap", body: x }
+    else
+        x
 
 let optimize_main = (ast) =>
     if ast.type == "array" then
@@ -17,10 +20,10 @@ let optimize_main = (ast) =>
           func: wrapFunc(recur(ast.func)),
           args: (wrapFunc $ (recur $ ast.args)) }
     else if ast.type == "conditional" then
-        { type: "conditional",
+        { type: "js-conditional",
           cond: wrapFunc(recur(ast.cond)),
-          thn: wrapFunc(recur(ast.thn)),
-          els: wrapFunc(recur(ast.els)) }
+          thn: recur(ast.thn),
+          els: recur(ast.els) }
     else if ast.type == "field_access" then
         { type: "field_access",
           obj: wrapFunc(recur(ast.obj)),
