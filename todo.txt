@@ -4,8 +4,8 @@ And not to mention typechecking, of course.
 
 
 Remember to use ulimit to set stack size limit, and --stack-size to node as
-well. Currently I have been using a stack size of 900000 kb, although hopefully
-that will go down.
+well. Currently it works with a stack size of 9000 kb, but I'd like to try and
+bring this down to where I don't have to up the limit anymore.
 
 
 One thing we eventually need to do is re-configure the tokenizer so that a
