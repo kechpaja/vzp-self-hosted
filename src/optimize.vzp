@@ -1,4 +1,66 @@
 import typecheck
+import utils
+
+let restOf = (x) => if x.length <= 1 then [] else x:1..(x.length-1)
+
+/* Run through AST and add something to IDs to make them unique */
+let uniqueIds = (astOuter) =>
+    ((ast, env, prefix) =>
+        let replaceIfInEnv = (id, e) =>
+            if e == [] then id else 
+            if (e:0).orig == id then (e:0).new else recur(id, restOf(e))
+        let appendToEnv = (orig, new, e) => [{ orig: orig, new: new }] + e
+
+        let recFunc = recur
+        let argRec = (args) =>
+            if args.length == 0 then [] else
+            ((x) => recFunc(args:(x-1),
+                            env,
+                            prefix + utils.itoa(x) + ".")) $ 1..args.length
+
+        if ast.type == "array" then
+            { type: "array",
+              contents: argRec(ast.contents) }
+        else if ast.type == "assignment" then
+            let newId = prefix + ast.identifier
+            { type: "assignment",
+              identifier: newId,
+              value: recur(ast.value, env, prefix + "0."),
+              body: recur(ast.body,
+                          appendToEnv(ast.identifier, newId, env),
+                          prefix + "1.") }
+        else if ast.type == "call" then
+            { type: "call",
+              func: recur(ast.func, env, prefix + "0."),
+              args: argRec(ast.args) }
+        else if ast.type == "conditional" then
+            { type: "conditional",
+              cond: recur(ast.cond, env, prefix + "0."),
+              thn: recur(ast.thn, env, prefix + "1."),
+              els: recur(ast.els, env, prefix + "2.") }
+        else if ast.type == "field_access" then
+            { type: "field_access",
+              obj: recur(ast.obj, env, prefix + "0."),
+              field: ast.field }
+        else if ast.type == "lambda" then
+            { type: "lambda",
+              params: ast.params, /* TODO Replace these? */
+              body: recur(ast.body, env, prefix + "0.") }
+        else if ast.type == "lookup" then
+            { type: "lookup",
+              identifier: replaceIfInEnv(ast.identifier, env) }
+        else if ast.type == "object" then
+            let f = (contents) =>
+                if contents.length == 0 then [] else
+                let nums = 1..contents.length
+                ((x) => { identifier: (contents:(x-1)).identifier,
+                          value: recFunc((contents:(x-1)).value,
+                                         env,
+                                         prefix + utils.itoa(x) + ".") }) $ nums 
+            { type: "object",
+              contents: f(ast.contents) }
+        else
+            ast)(astOuter, [], ".")
 
 let wrapFunc = (x) =>
     if x.type == "assignment" || x.type == "js-conditional" then
@@ -12,11 +74,14 @@ let optimize_main = (ast) =>
           contents: (wrapFunc $ (recur $ ast.contents)) }
     else if ast.type == "assignment" then
         if ast.value.type == "assignment" then
-            { type: "assignment",
-              identifier: ast.identifier,
-              value: wrapFunc(recur(ast.value)),
-              body: recur(ast.body) }
-            /* TODO actually optimize this */
+            let innerAssn = uniqueIds(ast.value)
+            recur({ type: "assignment",
+                    identifier: ast.value.identifier,
+                    value: ast.value.value,
+                    body: { type: "assignment",
+                            identifier: ast.identifier,
+                            value: ast.value.body,
+                            body: ast.body } })
         else if ast.value.type == "conditional" then
             { type: "js-conditional",
               cond: wrapFunc(recur(ast.value.cond)),
@@ -58,4 +123,4 @@ let optimize_main = (ast) =>
     else
         ast
 
-(program_as_string) => optimize_main(typecheck(program_as_string))
+(program_as_string) => optimize_main(uniqueIds(typecheck(program_as_string)))

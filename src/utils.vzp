@@ -20,4 +20,11 @@ let isAlpha = (c) => (c <= 90 && c >= 65) || (c <= 122 && c >= 97)
 let isAlnum = (c) => isDigit(c) || isAlpha(c)
 
 
-{ atoi: atoi, itoa: itoa, in: in, isAlnum: isAlnum, join: join }
+{
+    atoi: atoi,
+    itoa: itoa,
+    in: in,
+    isAlnum: isAlnum,
+    isDigit: isDigit,
+    join: join
+}
