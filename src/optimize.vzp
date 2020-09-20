@@ -11,10 +11,28 @@ let optimize_main = (ast) =>
         { type: "array",
           contents: (wrapFunc $ (recur $ ast.contents)) }
     else if ast.type == "assignment" then
-        { type: "assignment",
-          identifier: ast.identifier,
-          value: wrapFunc(recur(ast.value)),
-          body: recur(ast.body) }
+        if ast.value.type == "assignment" then
+            { type: "assignment",
+              identifier: ast.identifier,
+              value: wrapFunc(recur(ast.value)),
+              body: recur(ast.body) }
+            /* TODO actually optimize this */
+        else if ast.value.type == "conditional" then
+            { type: "js-conditional",
+              cond: wrapFunc(recur(ast.value.cond)),
+              thn: recur({ type: "assignment",
+                           identifier: ast.identifier,
+                           value: ast.value.thn,
+                           body: ast.body }),
+              els: recur({ type: "assignment",
+                           identifier: ast.identifier,
+                           value: ast.value.els,
+                           body: ast.body }) }
+        else
+            { type: "assignment",
+              identifier: ast.identifier,
+              value: recur(ast.value),
+              body: recur(ast.body) }
     else if ast.type == "call" then
         { type: "call",
           func: wrapFunc(recur(ast.func)),
