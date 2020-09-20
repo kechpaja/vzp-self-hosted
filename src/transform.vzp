@@ -69,6 +69,10 @@ let wrapFunc = (x) =>
         x
 
 let transform_main = (ast) =>
+    let anyAssnOrCondIn = (array) =>
+        || @> (((x) => x.type == "assignment" 
+                    || x.type == "conditional") $ array) false
+
     let argRec = (origArgs, newArgs, bottomFunc) =>
         if origArgs.length == 0 then
             bottomFunc(newArgs)
@@ -92,8 +96,7 @@ let transform_main = (ast) =>
             recur(restOf(origArgs), newArgs + origArgs:[0], bottomFunc)
 
     if ast.type == "array" then
-        if || @> (((x) => x.type == "assignment" 
-                       || x.type == "conditional") $ ast.contents) false then
+        if anyAssnOrCondIn(ast.contents) then
             recur(argRec(ast.contents, [], (contents) => { type: "array",
                                                            contents: contents}))
         else
@@ -125,9 +128,30 @@ let transform_main = (ast) =>
               value: recur(ast.value),
               body: recur(ast.body) }
     else if ast.type == "call" then
-        { type: "call",
-          func: wrapFunc(recur(ast.func)),
-          args: (wrapFunc $ (recur $ ast.args)) }
+        if ast.func.type == "assignment" then
+            recur({ type: "assignment",
+                    identifier: ast.func.identifier,
+                    value: ast.func.value,
+                    body: { type: "call",
+                            func: ast.func.body,
+                            args: ast.args } })
+        else if ast.func.type == "conditional" then
+            recur({ type: "conditional",
+                    cond: ast.func.cond,
+                    thn: { type: "call",
+                           func: ast.func.thn,
+                           args: ast.args },
+                    els: { type: "call",
+                           func: ast.func.els,
+                           args: ast.args } })
+        else if anyAssnOrCondIn(ast.args) then
+            recur(argRec(ast.args, [], (args) => { type: "call",
+                                                   func: ast.func,
+                                                   args: args }))
+        else
+            { type: "call",
+              func: recur(ast.func),
+              args: recur $ ast.args }
     else if ast.type == "conditional" then
         if ast.cond.type == "assignment" then
             recur({ type: "assignment",
