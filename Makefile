@@ -4,36 +4,30 @@ RUN			= ./run.sh
 default: build
 
 build: src/*.vzp src/corefuncs.js
-	@if [[ "$$PREV_VERSION" == "" ]]; then \
-		PREV_VERSION="`ls versions/ | sort -V | tail -n 1`"; \
+	@if [[ "$$USING_VERSION" == "" ]]; then \
+		USING_VERSION="`ls versions/ | sort -V | tail -n 1`"; \
 	fi; \
-	if [[ "$$VERSION" == "" ]]; then \
-		VERSION="00-testing"; \
-	fi; \
-	mkdir -p versions/$$VERSION/staging; \
+	mkdir -p versions/00-testing/staging; \
 	for f in src/*.vzp; do \
 		f_nodir="$${f##*/}"; \
-		$(RUN) "$$PREV_VERSION" compile "$$f" > "versions/$$VERSION/staging/$${f_nodir/.vzp/.js}"; \
+		$(RUN) "$$USING_VERSION" compile "$$f" > "versions/00-testing/staging/$${f_nodir/.vzp/.js}"; \
 	done; \
-	cp src/*.js "versions/$$VERSION/staging/"; \
+	cp src/*.js versions/00-testing/staging/; \
 	for f in src/*.vzp; do \
 		f_nodir="$${f##*/}"; \
-		$(RUN) "$$VERSION/staging" compile "$$f" > "versions/$$VERSION/$${f_nodir/.vzp/.js}"; \
+		$(RUN)  00-testing/staging compile "$$f" > "versions/00-testing/$${f_nodir/.vzp/.js}"; \
 	done; \
-	cp src/*.js "versions/$$VERSION/"; \
-	$(RM) -rf "versions/$$VERSION/staging"
+	cp src/*.js versions/00-testing/; \
+	$(RM) -rf versions/00-testing/staging
 
 test: build
 	@echo "=================================================="
 	@echo "Running tests. Successful tests produce no output."
 	@echo "=================================================="
 	@TMPDIR="`mktemp -d`"; \
-	if [[ "$$VERSION" == "" ]]; then \
-		VERSION="00-testing"; \
-	fi; \
 	for dir in tests/*; do \
 		for f in $$dir/*.vzp; do \
-			$(RUN) $$VERSION compile "$$f" > "$${f/.vzp/.js}"; \
+			$(RUN) 00-testing compile "$$f" > "$${f/.vzp/.js}"; \
 		done; \
 		$(NODEJS) "$$dir/program.js" > "$$TMPDIR/stdout" 2> "$$TMPDIR/stderr"; \
 		diff "$$dir/stdout" "$$TMPDIR/stdout"; \
