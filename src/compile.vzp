@@ -43,8 +43,6 @@ let compile_js = (ast, isBound, depth) =>
     else if ast.type == "object" then
         let f = (elem) => escapeId(elem.identifier) + ":" + recTrue(elem.value)
         wrap("{" + utils.join(f $ ast.contents) + "}")
-    else if ast.type == "funcwrap" then
-        wrap("(function(){" + recFalse(ast.body) + "})()");
     else
         "UNKNOWN" + ast.type
 

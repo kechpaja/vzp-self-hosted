@@ -1,11 +1,11 @@
-Start simplifying and optimizing stuff, and figure out how to emit LLVM!
+Start optimizing stuff, and figure out how to emit LLVM!
 
 And not to mention typechecking, of course.
 
 
 Remember to use ulimit to set stack size limit, and --stack-size to node as
-well. Currently I can parse parse.vzp with a stack size of 75000 kb, although
-that will probably be higher for the later versions. 
+well. Currently I have been using a stack size of 900000 kb, although hopefully
+that will go down.
 
 
 One thing we eventually need to do is re-configure the tokenizer so that a
@@ -17,6 +17,3 @@ f(1,2)
 is regarded as acceptable. Basically, this means not automatically deleting the
 semicolon after + when it's preceded by =, but it's a low-priority change
 because you can get around it easily by putting the + in parentheses.
-
-
-Make sure short circuiting works.  
