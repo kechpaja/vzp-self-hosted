@@ -83,16 +83,16 @@ let transform_main = (ast) =>
                             value: ast.value.body,
                             body: ast.body } })
         else if ast.value.type == "conditional" then
-            { type: "js-conditional",
-              cond: wrapFunc(recur(ast.value.cond)),
-              thn: recur({ type: "assignment",
+            recur({ type: "conditional",
+                    cond: ast.value.cond,
+                    thn: { type: "assignment",
                            identifier: ast.identifier,
                            value: ast.value.thn,
-                           body: ast.body }),
-              els: recur({ type: "assignment",
+                           body: ast.body },
+                    els: { type: "assignment",
                            identifier: ast.identifier,
                            value: ast.value.els,
-                           body: ast.body }) }
+                           body: ast.body } })
         else
             { type: "assignment",
               identifier: ast.identifier,
@@ -103,10 +103,30 @@ let transform_main = (ast) =>
           func: wrapFunc(recur(ast.func)),
           args: (wrapFunc $ (recur $ ast.args)) }
     else if ast.type == "conditional" then
-        { type: "js-conditional",
-          cond: wrapFunc(recur(ast.cond)),
-          thn: recur(ast.thn),
-          els: recur(ast.els) }
+        if ast.cond.type == "assignment" then
+            recur({ type: "assignment",
+                    identifier: ast.cond.identifier,
+                    value: ast.cond.value,
+                    body: { type: "conditional",
+                            cond: ast.cond.body,
+                            thn: ast.thn,
+                            els: ast.els } })
+        else if ast.cond.type == "conditional" then
+            recur({ type: "conditional",
+                    cond: ast.cond.cond,
+                    thn: { type: "conditional",
+                           cond: ast.cond.thn,
+                           thn: ast.thn,
+                           els: ast.els },
+                    els: { type: "conditional",
+                           cond: ast.cond.els,
+                           thn: ast.thn,
+                           els: ast.els } })
+        else
+            { type: "js-conditional",
+              cond: recur(ast.cond),
+              thn: recur(ast.thn),
+              els: recur(ast.els) }
     else if ast.type == "field_access" then
         { type: "field_access",
           obj: wrapFunc(recur(ast.obj)),
