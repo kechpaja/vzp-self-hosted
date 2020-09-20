@@ -128,9 +128,26 @@ let transform_main = (ast) =>
               thn: recur(ast.thn),
               els: recur(ast.els) }
     else if ast.type == "field_access" then
-        { type: "field_access",
-          obj: wrapFunc(recur(ast.obj)),
-          field: ast.field }
+        if ast.obj.type == "assignment" then
+            recur({ type: "assignment",
+                    identifier: ast.obj.identifier,
+                    value: ast.obj.value,
+                    body: { type: "field_access",
+                            obj: ast.obj.body,
+                            field: ast.field } })
+        else if ast.obj.type == "conditional" then
+            recur({ type: "conditional",
+                    cond: ast.obj.cond,
+                    thn: { type: "field_access",
+                           obj: ast.obj.thn,
+                           field: ast.field },
+                    els: { type: "field_access",
+                           obj: ast.obj.els,
+                           field: ast.field } })
+        else
+            { type: "field_access",
+              obj: recur(ast.obj),
+              field: ast.field }
     else if ast.type == "lambda" then
         { type: "lambda",
           params: ast.params,
