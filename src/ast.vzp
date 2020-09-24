@@ -1,6 +1,6 @@
 import utils
 
-let stringifyAst = (ast) =>
+let stringifyAst = (ast :: Object) =>
     if ast.type == "conditional" then
         "(if " + recur(ast.cond) + " then " + recur(ast.thn) + " else " + recur(ast.els) + ")"
     else if ast.type == "number" then
@@ -11,7 +11,7 @@ let stringifyAst = (ast) =>
         "[" + utils.join(recur $ ast.contents) + "]"
     else if ast.type == "object" then
         let recFunc = recur
-        "{" + utils.join(((x) => x.identifier + ": " + recFunc(x.value)) $ ast.contents) + "}"
+        "{" + utils.join(((x :: Object) => x.identifier + ": " + recFunc(x.value)) $ ast.contents) + "}"
     else if ast.type == "call" then
         recur(ast.func) + "(" + utils.join(recur $ ast.args) + ")"
     else if ast.type == "import" then

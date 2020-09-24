@@ -1,8 +1,8 @@
 import parse
 
 /* TODO we're bypassing typechecking for now */
-let typecheck_main = (ast) =>
+let typecheck_main = (ast :: Object) =>
     if !ast.wellFormed then print("BAD" + ast.error) else ast.ast
 
 /* Export a nice simple function */
-(program_as_string) => typecheck_main(parse(program_as_string))
+(program_as_string :: [Int64]) => typecheck_main(parse(program_as_string))

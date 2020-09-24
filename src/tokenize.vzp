@@ -1,15 +1,16 @@
 import utils
 
-let isLetterOrUnderscore = (c) =>
+let isLetterOrUnderscore = (c :: Int64) =>
     c == 95 || (c <= 122 && 97 <= c) || (c <= 90 && 65 <= c)
 
-let isDigit = (c) => c <= 57 && 48 <= c
+let isDigit = (c :: Int64) => c <= 57 && 48 <= c
 
-let isLetterDigitOrUnderscore = (c) => isLetterOrUnderscore(c) || isDigit(c)
+let isLetterDigitOrUnderscore = (c :: Int64) => 
+    isLetterOrUnderscore(c) || isDigit(c)
 
-let isEOL = (c) => c == 10 || c == 13 || c == 59 /* \n, \r, ; */
+let isEOL = (c :: Int64) => c == 10 || c == 13 || c == 59 /* \n, \r, ; */
 
-let charsGoTogether = (a, b) =>
+let charsGoTogether = (a :: [Int64], b :: Int64) =>
     if a == "" then true else /* Need if because still no short circuiting*/
         ((a:0 == 34) && (if a.length == 1 then true else if a == "" then false
                          else ((a:(a.length-1) != 34)||(a:(a.length-2) == 92))))
@@ -25,9 +26,10 @@ let charsGoTogether = (a, b) =>
      || (if a.length >= 2 then (a:(0..1)) == "/*" /* Again, no short circuit */
                        && (a:((a.length-2)..(a.length-1))) !="*/" else false)
 
-let skip = (c) => (c <= 32) && (c != 10) && (c != 13) /* whitespace != \n, \r */
+/* whitespace != \n, \r */
+let skip = (c :: Int64) => (c <= 32) && (c != 10) && (c != 13)
 
-let tokenize = (currentTokenPart, chars) =>
+let tokenize = (currentTokenPart :: [Int64], chars :: [Int64]) =>
     if chars.length <= 0 then
         if currentTokenPart == "" then [] else [currentTokenPart]
     else if chars.length == 1 then
@@ -45,7 +47,7 @@ let tokenize = (currentTokenPart, chars) =>
         else
             [currentTokenPart] + recur(chars : [0], chars : 1..(chars.length-1))
 
-let simplifyToken = (t) => if isEOL(t:0) then ";" else t
+let simplifyToken = (t :: [Int64]) => if isEOL(t:0) then ";" else t
 
 /* Stuff for removing unnecessary tokens */
 let mergeKeywords = ["==", "!=", "<", "<=", ">", ">=", "||", "&&", ".", "..", 
@@ -54,7 +56,7 @@ let mergeKeywords = ["==", "!=", "<", "<=", ">", ">=", "||", "&&", ".", "..",
 let mergeKeywordsBefore = ["if", "import", "let", "(", "[", "{"] + mergeKeywords
 let mergeKeywordsAfter = [")", "}", "]"] + mergeKeywords
 
-let merge = (token, list) =>
+let merge = (token :: [Int64], list :: [[Int64]]) =>
     if token.length >= 2 && (token:(0..1)) == "/*" then list else
     if list.length == 0 && token == ";" then [] else
     if list.length == 0 then [token] else
@@ -67,7 +69,7 @@ let merge = (token, list) =>
         [token] + list
 
 /* Just export this function */
-(program) =>
+(program :: [Int64]) =>
     let tokens = merge @> (simplifyToken $ tokenize("", program)) []
     if tokens.length > 0 && (tokens:0 == ";") then 
         (tokens:(1..(tokens.length-1)))

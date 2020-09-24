@@ -1,17 +1,18 @@
 import transform
 import utils
 
-let escapeId = (id) =>
+let escapeId = (id :: [Int64]) =>
     if utils.in(id, ["true", "false"]) then id else
-    let f = (c) => if utils.isAlnum(c) then [c] else "_" + utils.itoa(c) + "_"
+    let f = (c :: Int64) => 
+        if utils.isAlnum(c) then [c] else "_" + utils.itoa(c) + "_"
     "_" + ((+) <@ [] f $ id)
 
-let compile_js = (ast, isBound, depth) =>
-    let recTrue = let recFunc = recur; (x) => recFunc(x, true, depth + 1)
-    let recFalse = let recFunc = recur; (x) => recFunc(x, false, depth + 1)
+let compile_js = (ast :: Object, isBound :: Boolean, depth :: Int64) =>
+    let recTrue = let rf = recur; (x :: Object) => rf(x, true, depth + 1)
+    let recFalse = let rf = recur; (x :: Object) => rf(x, false, depth + 1)
     let depthId = "_0_" + utils.itoa(depth)
 
-    let wrap = (x) => if isBound then x else "return " + x + ";"
+    let wrap = (x :: [Int64]) => if isBound then x else "return " + x + ";"
 
     /* Main block */
     if ast.type == "array" then
@@ -41,12 +42,13 @@ let compile_js = (ast, isBound, depth) =>
     else if ast.type == "number" then
         wrap(utils.itoa(ast.value))
     else if ast.type == "object" then
-        let f = (elem) => escapeId(elem.identifier) + ":" + recTrue(elem.value)
+        let f = (elem :: Object) => 
+            escapeId(elem.identifier) + ":" + recTrue(elem.value)
         wrap("{" + utils.join(f $ ast.contents) + "}")
     else
         "UNKNOWN" + ast.type
 
-(program_as_string) =>
+(program_as_string :: [Int64]) =>
     "module.exports={vzpModule:(function(){"
   + compile_js(transform(program_as_string), false, 0)
   + "})()};" /* TODO various args and such */ 

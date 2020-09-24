@@ -3,7 +3,7 @@ import ast
 import utils
 
 /* TODO this should be in a library somewhere */
-let restOf = (array) =>
+let restOf = (array :: [typeVar]) =>
     if array.length < 2 then [] else array:(1..(array.length-1))
 
 let opsByPrec = [ [ "||" ], /* Lowest to highest */
@@ -17,31 +17,34 @@ let opsByPrec = [ [ "||" ], /* Lowest to highest */
                   [ ".." ],
                   [ ".", "(" ] ]
 
-let isDigit = (c) => c <= 57 && c >= 48
+let isDigit = (c :: Int64) => c <= 57 && c >= 48
 
-let isAlpha = (c) => (c <= 90 && c >= 65) || (c <= 122 && c >= 97) || c == 95
+let isAlpha = (c :: Int64) => (c <= 90 && c >= 65) || (c <= 122 && c >= 97)
+                                                   || c == 95
 
-let isNumber = (string) => (((a, b) => a && b) <@ true isDigit $ string)
+let isNumber = (string :: [Int64]) => 
+    (((a :: Boolean, b :: Boolean) => a && b) <@ true isDigit $ string)
 
-let isValidId = (string) => 
+let isValidId = (string :: [Int64]) => 
     (string.length > 0)
  && isAlpha(string:0)
- && ((x, y) => x && (isAlpha(y) || isDigit(y))) <@ true restOf(string)
+ && ((x :: Int64, y :: Int64) => x && (isAlpha(y) || isDigit(y))) 
+                                                    <@ true restOf(string)
 
-let fail = (error) =>
+let fail = (error :: [Int64]) =>
     let unused = print(error)
     { wellFormed: false, error: error } /* TODO */
 
-let checkFor = (tokens, value) =>
+let checkFor = (tokens :: [[Int64]], value :: [Int64]) =>
     if tokens.length == 0 then false else (tokens:0) == value
 
-let noFollowingExpr = (tokens) =>
+let noFollowingExpr = (tokens :: [[Int64]]) =>
     tokens.length == 0
  || utils.in(tokens:0, [";", ")", "}", "]", "then", "else"]) /* TODO binops */
 
-let parseTypeAnn = (tokens) =>
+let parseTypeAnn = (tokens :: [[Int64]]) =>
     let recFunc = recur
-    let parseTypeAnnList = (tokens) =>
+    let parseTypeAnnList = (tokens :: [[Int64]]) =>
         if checkFor(tokens, ")") || checkFor(tokens, "]") then
             { ann: [], rest: tokens, wellFormed: true }
         else
@@ -89,7 +92,7 @@ let parseTypeAnn = (tokens) =>
     else
         { wellFormed: false }
 
-let parseParam = (tokens) =>
+let parseParam = (tokens :: [[Int64]]) =>
     if tokens.length < 3 || !isValidId(tokens:0) || tokens:1 != "::" then
         { wellFormed: false }
     else
@@ -100,7 +103,7 @@ let parseParam = (tokens) =>
           rest: ann.rest,
           wellFormed: true }
 
-let parseParamList = (tokens) =>
+let parseParamList = (tokens :: [[Int64]]) =>
     if (tokens.length == 0) || ((tokens:0) == ")") then
         { ast: [], rest: tokens, wellFormed: true }
     else
@@ -117,8 +120,8 @@ let parseParamList = (tokens) =>
         else
             { wellFormed: false }
 
-let parseArgList = (tokens, mutualRecParse) =>
-    let listEnds = (tkns) =>
+let parseArgList = (tokens :: [[Int64]], mutualRecParse :: ([[Int64]]) Object)=>
+    let listEnds = (tkns :: [[Int64]]) =>
         ((tkns:0) == "]") || ((tkns:0) == ")") || ((tkns:0) == "}")
 
     if tokens.length == 0 then fail("End of tokens in parseArgList")
@@ -138,8 +141,9 @@ let parseArgList = (tokens, mutualRecParse) =>
         else
             fail("Expected comma in parseArgList")
 
-let parseObjectInternalList = (tokens, mutualRecParse) =>
-    let listEnds = (tkns) =>
+let parseObjectInternalList = (tokens :: [[Int64]],
+                               mutualRecParse :: ([[Int64]]) Object) =>
+    let listEnds = (tkns :: [[Int64]]) =>
         ((tkns:0) == "]") || ((tkns:0) == ")") || ((tkns:0) == "}")
 
     if tokens.length < 4 then
@@ -164,7 +168,9 @@ let parseObjectInternalList = (tokens, mutualRecParse) =>
         else
             fail("Expected comma in parseObjectInternalList")
 
-let parseDotsAndCalls = (expr, tokens, mutualRecParse) =>
+let parseDotsAndCalls = (expr :: Object,
+                         tokens :: [[Int64]],
+                         mutualRecParse :: ([[Int64]]) Object) =>
     if tokens.length > 0 && (tokens:0) == "." then
         if (tokens.length < 2) || (!isValidId(tokens:1)) then
             fail("Not a valid field lookup")
@@ -182,8 +188,9 @@ let parseDotsAndCalls = (expr, tokens, mutualRecParse) =>
     else
         { ast: expr, rest: tokens, wellFormed: true }
 
-let parse = (operations, tokens) =>
-    let recurWithFullOps = let rcr = recur; (tkns) => rcr(opsByPrec, tkns)
+let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
+    let recurWithFullOps = let rcr = recur; (tkns :: [[Int64]]) => 
+                                                        rcr(opsByPrec, tkns)
 
     if operations.length == 0 then
         if tokens.length == 0 then
@@ -322,7 +329,8 @@ let parse = (operations, tokens) =>
             else
                 let str = (tokens:0):(1..((tokens:0).length-2))
                 { ast: { type: "array",
-                         contents: ((x) => {type: "number", value: x}) $ str },
+                         contents: ((x :: Object) =>
+                                        {type: "number", value: x}) $ str },
                   rest: restOf(tokens),
                   wellFormed: true }
         else if isValidId(tokens:0) || utils.in(tokens:0, + <@ [] opsByPrec)then
@@ -374,4 +382,4 @@ let parse = (operations, tokens) =>
                   wellFormed: true }
 
 /* Export a nice function that the typechecker can call */
-(program_as_string) => parse(opsByPrec, tokenize(program_as_string))
+(program_as_string :: [Int64]) => parse(opsByPrec, tokenize(program_as_string))

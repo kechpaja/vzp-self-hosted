@@ -1,23 +1,24 @@
 /* TODO use isDigit to check each digit first! */
-let atoi = (string) =>
-    ((x, y) => ((x * 10) + (y - 48))) <@ 0 string
+let atoi = (string :: [Int64]) =>
+    ((x :: Int64, y :: Int64) => ((x * 10) + (y - 48))) <@ 0 string
 
-let itoa = (number) =>
+let itoa = (number :: Int64) =>
     (if number >= 10 then recur(number / 10) else "") + [(number % 10) + 48]
 
-/* TODO inefficient */
-let in = (x, collection) =>
-    || @> ((y) => x == y) $ collection false
+/* TODO inefficient TODO types */
+let in = (x :: AnyEquable, collection :: Collection) =>
+    || @> ((y :: AnyEquable) => x == y) $ collection false
 
-let join = (alos) =>
-    ((x, y) => (if y == "" then x else x + ", " + y)) @> alos ""
+let join = (alos :: [[Int64]]) =>
+    ((x :: [Int64], y :: [Int64]) =>
+        (if y == "" then x else x + ", " + y)) @> alos ""
 
 
-let isDigit = (c) => c <= 57 && c >= 48
+let isDigit = (c :: Int64) => c <= 57 && c >= 48
 
-let isAlpha = (c) => (c <= 90 && c >= 65) || (c <= 122 && c >= 97)
+let isAlpha = (c :: Int64) => (c <= 90 && c >= 65) || (c <= 122 && c >= 97)
 
-let isAlnum = (c) => isDigit(c) || isAlpha(c)
+let isAlnum = (c :: Int64) => isDigit(c) || isAlpha(c)
 
 
 {

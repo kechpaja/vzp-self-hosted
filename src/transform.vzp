@@ -1,22 +1,24 @@
 import typecheck
 import utils
 
-let restOf = (x) => if x.length <= 1 then [] else x:1..(x.length-1)
+let restOf = (x :: [Any]) => if x.length <= 1 then [] else x:1..(x.length-1)
 
 /* Run through AST and add something to IDs to make them unique */
-let uniqueIds = (astOuter) =>
-    ((ast, env, prefix) =>
-        let replaceIfInEnv = (id, e) =>
+let uniqueIds = (astOuter :: Object) =>
+    ((ast :: Object, env :: [Object], prefix :: [Int64]) =>
+        let replaceIfInEnv = (id :: [Int64], e :: [Object]) =>
             if e == [] then id else 
             if (e:0).orig == id then (e:0).new else recur(id, restOf(e))
-        let appendToEnv = (orig, new, e) => [{ orig: orig, new: new }] + e
+        let appendToEnv = (orig :: [Int64], new :: [Int64], e :: [Object]) =>
+            [{ orig: orig, new: new }] + e
 
         let recFunc = recur
-        let argRec = (args) =>
+        let argRec = (args :: [Object]) =>
             if args.length == 0 then [] else
-            ((x) => recFunc(args:(x-1),
-                            env,
-                            prefix + utils.itoa(x) + ".")) $ 1..args.length
+            ((x :: Int64) => 
+                recFunc(args:(x-1),
+                        env,
+                        prefix + utils.itoa(x) + ".")) $ 1..args.length
 
         if ast.type == "array" then
             { type: "array",
@@ -50,24 +52,27 @@ let uniqueIds = (astOuter) =>
             { type: "lookup",
               identifier: replaceIfInEnv(ast.identifier, env) }
         else if ast.type == "object" then
-            let f = (contents) =>
+            let f = (contents :: [Object]) =>
                 if contents.length == 0 then [] else
                 let nums = 1..contents.length
-                ((x) => { identifier: (contents:(x-1)).identifier,
-                          value: recFunc((contents:(x-1)).value,
-                                         env,
-                                         prefix + utils.itoa(x) + ".") }) $ nums 
+                ((x :: Int64) => 
+                    { identifier: (contents:(x-1)).identifier,
+                      value: recFunc((contents:(x-1)).value,
+                                     env,
+                                     prefix + utils.itoa(x) + ".") }) $ nums 
             { type: "object",
               contents: f(ast.contents) }
         else
             ast)(astOuter, [], ".")
 
-let transform_main = (ast) =>
-    let anyAssnOrCondIn = (array) =>
-        || @> (((x) => x.type == "assignment" 
-                    || x.type == "conditional") $ array) false
+let transform_main = (ast :: Object) =>
+    let anyAssnOrCondIn = (array :: [Object]) =>
+        || @> (((x :: Object) => x.type == "assignment" 
+                              || x.type == "conditional") $ array) false
 
-    let argRec = (origArgs, newArgs, bottomFunc) =>
+    let argRec = (origArgs :: [Object],
+                  newArgs :: [Object],
+                  bottomFunc :: ([Object]) Object) =>
         if origArgs.length == 0 then
             bottomFunc(newArgs)
         else if (origArgs:0).type == "assignment" then
@@ -91,8 +96,10 @@ let transform_main = (ast) =>
 
     if ast.type == "array" then
         if anyAssnOrCondIn(ast.contents) then
-            recur(argRec(ast.contents, [], (contents) => { type: "array",
-                                                           contents: contents}))
+            recur(argRec(ast.contents, 
+                         [],
+                         (contents :: [Object]) => { type: "array",
+                                                     contents: contents}))
         else
             { type: "array", contents: recur $ ast.contents }
     else if ast.type == "assignment" then
@@ -121,9 +128,9 @@ let transform_main = (ast) =>
                     identifier: ast.identifier,
                     value: argRec(ast.value.args, 
                                   [], 
-                                  (args) => { type: "call",
-                                              func: ast.value.func,
-                                              args: args }),
+                                  (args :: [Object]) => { type: "call",
+                                                          func: ast.value.func,
+                                                          args: args }),
                     body: ast.body })
         else
             { type: "js-assignment",
@@ -151,9 +158,9 @@ let transform_main = (ast) =>
             /* TODO This isn't good enough; got js-conditional in output */
             /* TODO Need to handle case where stuff gets lifted out when the
              * call is in a lettable position. */
-            recur(argRec(ast.args, [], (args) => { type: "call",
-                                                   func: ast.func,
-                                                   args: args }))
+            recur(argRec(ast.args, [], (args :: [Object]) => { type: "call",
+                                                               func: ast.func,
+                                                               args: args }))
         else
             { type: "call",
               func: recur(ast.func),
@@ -182,9 +189,9 @@ let transform_main = (ast) =>
             recur({ type: "conditional",
                     cond: argRec(ast.cond.args, 
                                  [],
-                                 (args) => { type: "call",
-                                             func: ast.cond.func,
-                                             args: args }),
+                                 (args :: [Object]) => { type: "call",
+                                                         func: ast.cond.func,
+                                                         args: args }),
                     thn: ast.thn,
                     els: ast.els })
         else
@@ -215,23 +222,26 @@ let transform_main = (ast) =>
               field: ast.field }
     else if ast.type == "lambda" then
         { type: "lambda",
-          params: ((x) => x.param) $ ast.params, /* XXX remove type info*/
+          params: ((x :: Object) => x.param) $ ast.params, /* XXX remove types*/
           body: recur(ast.body) }
     else if ast.type == "object" then
-        let values = ((x) => x.value) $ ast.contents
+        let values = ((x :: Object) => x.value) $ ast.contents
         if anyAssnOrCondIn(values) then
-            let fields = ((x) => x.identifier) $ ast.contents
-            recur(argRec(values, [], (values) => { 
+            let fields = ((x :: Object) => x.identifier) $ ast.contents
+            recur(argRec(values, [], (values :: [Object]) => { 
                 type: "object",
-                contents: ((x) => { identifier: fields:x,
-                                    value: values:x }) $ 0..(fields.length-1)
+                contents: ((x :: Int64) => 
+                               { identifier: fields:x,
+                                 value: values:x }) $ 0..(fields.length-1)
             }))
         else
-            let f = (let recFunc = recur; (x) => { identifier: x.identifier,
+            let f = (let recFunc = recur; (x :: Object) => 
+                                                 { identifier: x.identifier,
                                                    value: recFunc(x.value) })
             { type: "object",
               contents: (f $ ast.contents) }
     else
         ast
 
-(program_as_string) => transform_main(uniqueIds(typecheck(program_as_string)))
+(program_as_string :: [Int64]) =>
+    transform_main(uniqueIds(typecheck(program_as_string)))
