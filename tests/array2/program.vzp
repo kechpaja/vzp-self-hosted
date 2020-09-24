@@ -1,2 +1,2 @@
-let f = (x, y) => [x, y]
+let f = (x :: Int64, y :: Int64) => [x, y]
 if f(5, 6) == [5, 6] then print("true") else print("false")

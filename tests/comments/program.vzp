@@ -1,4 +1,4 @@
-let fibs = (x) => /* A comment here */
+let fibs = (x :: Int64) => /* A comment here */
     if x < 2/*A comment here too */then
         1
     else

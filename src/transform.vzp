@@ -139,6 +139,7 @@ let transform_main = (ast) =>
                            func: ast.func.els,
                            args: ast.args } })
         else if anyAssnOrCondIn(ast.args) then
+            /* TODO This isn't good enough; got js-conditional in output */
             recur(argRec(ast.args, [], (args) => { type: "call",
                                                    func: ast.func,
                                                    args: args }))
@@ -194,7 +195,7 @@ let transform_main = (ast) =>
               field: ast.field }
     else if ast.type == "lambda" then
         { type: "lambda",
-          params: ast.params,
+          params: ((x) => x.param) $ ast.params, /* XXX remove type info*/
           body: recur(ast.body) }
     else if ast.type == "object" then
         let values = ((x) => x.value) $ ast.contents

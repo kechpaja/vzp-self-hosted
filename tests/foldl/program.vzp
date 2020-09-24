@@ -1,1 +1,1 @@
-if (((x, y) => x - y) <@ 0 [1, 2, 3]) == -6 then print("-6") else print("asdf")
+if (((x :: Int64, y :: Int64) => x - y) <@ 0 [1, 2, 3]) == -6 then print("-6") else print("asdf")

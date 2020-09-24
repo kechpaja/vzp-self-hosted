@@ -1,4 +1,4 @@
-let fizzbuzz = (x) =>
+let fizzbuzz = (x :: Int64) =>
     if x < 0 then
         ""
     else 

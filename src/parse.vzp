@@ -39,17 +39,83 @@ let noFollowingExpr = (tokens) =>
     tokens.length == 0
  || utils.in(tokens:0, [";", ")", "}", "]", "then", "else"]) /* TODO binops */
 
-let parseParamList = (tokens) =>
-    if (tokens.length == 0) || ((tokens:0) == ")") then [] else
-    if (tokens.length >= 2) && isValidId(tokens:0) && ((tokens:1) == ")") then
-        { ast: [tokens:0], rest: restOf(tokens), wellFormed: true }
-    else
-        if !checkFor(restOf(tokens), ",") then { wellFormed: false } else
-        let laterParams = recur(restOf(restOf(tokens))) /* TODO catch bad IDs */
-        if !laterParams.wellFormed then { wellFormed: false } else
-        { ast: ([tokens:0] + laterParams.ast), 
-          rest: laterParams.rest, 
+let parseTypeAnn = (tokens) =>
+    let recFunc = recur
+    let parseTypeAnnList = (tokens) =>
+        if checkFor(tokens, ")") || checkFor(tokens, "]") then
+            { ann: [], rest: tokens, wellFormed: true }
+        else
+            let ann = recFunc(tokens)
+            if !ann.wellFormed then { wellFormed: false } else
+            if checkFor(ann.rest, ",") || checkFor(ann.rest, ")") 
+                                       || checkFor(ann.rest, "]") then
+                let recurOn = if ann.rest:0 == "," then restOf(ann.rest)
+                                                   else ann.rest
+                let laterAnns = recur(recurOn)
+                if !laterAnns.wellFormed then { wellFormed: false } else
+                { ann: [ann.ann] + laterAnns.ann,
+                  rest: laterAnns.rest,
+                  wellFormed: true }
+            else
+                { wellFormed: false }
+
+    /* TODO this will get longer when we add objects, hashes, sets (tuples?) */
+    if tokens.length < 1 then { wellFormed: false } else
+    if isValidId(tokens:0) then 
+        { ann: { type: "simple",
+                 name: tokens:0 },
+          rest: restOf(tokens), 
           wellFormed: true }
+    else if checkFor(tokens, "(") then
+        let list = parseTypeAnnList(restOf(tokens))
+        if !list.wellFormed || list.rest.length < 1 || !checkFor(list.rest, ")")
+            then { wellFormed: false }
+            else
+                let retType = recur(restOf(list.rest))
+                if !retType.wellFormed then { wellFormed: false } else
+                { ann: { type: "function",
+                         return: retType.ann,
+                         params: list.ann },
+                  rest: retType.rest,
+                  wellFormed: true }
+    else if checkFor(tokens, "[") then
+        let inner = recur(restOf(tokens))
+        if !inner.wellFormed || inner.rest.length < 1 
+                             || !checkFor(inner.rest, "]")
+            then { wellFormed: false }
+            else { ann: { type: "array", contents: inner.ann },
+                   rest: restOf(inner.rest),
+                   wellFormed: true }
+    else
+        { wellFormed: false }
+
+let parseParam = (tokens) =>
+    if tokens.length < 3 || !isValidId(tokens:0) || tokens:1 != "::" then
+        { wellFormed: false }
+    else
+        let ann = parseTypeAnn(restOf(restOf(tokens)))
+        if !ann.wellFormed then { wellFormed: false } else
+        { param: tokens:0, 
+          ann: ann.ann,
+          rest: ann.rest,
+          wellFormed: true }
+
+let parseParamList = (tokens) =>
+    if (tokens.length == 0) || ((tokens:0) == ")") then
+        { ast: [], rest: tokens, wellFormed: true }
+    else
+        let param = parseParam(tokens)
+        if !param.wellFormed then { wellFormed: false } else
+        if checkFor(param.rest, ",") || checkFor(param.rest, ")") then
+            let recurOn = if param.rest:0 == ")" then param.rest
+                                                 else restOf(param.rest)
+            let laterParams = recur(recurOn)
+            if !laterParams.wellFormed then { wellFormed: false } else
+            { ast: [ { param: param.param, ann: param.ann } ] + laterParams.ast,
+              rest: laterParams.rest,
+              wellFormed: true }
+        else
+            { wellFormed: false }
 
 let parseArgList = (tokens, mutualRecParse) =>
     let listEnds = (tkns) =>
@@ -209,11 +275,13 @@ let parse = (operations, tokens) =>
                   rest: body.rest,
                   wellFormed: true }
             else if (tokens.length >= 4) && isValidId(tokens:1) 
-                           && (((tokens:2) == ",")
-                          || (((tokens:2) == ")") && ((tokens:3) == "=>"))) then
+                           &&(tokens:2) == "::" then
+                        /* TODO change here if we make annotation optional */
                 let list = parseParamList(restOf(tokens))
-                if !list.wellFormed || !checkFor(list.rest, ")") then
-                    fail("Problem with param list contents or final )")
+                if !list.wellFormed then
+                    fail("Problem with param list contents")
+                else if !checkFor(list.rest, ")") then
+                    fail("Problem with param list final )")
                 else if !checkFor(restOf(list.rest), "=>") then
                     fail("Expected '=>' after param list of function")
                 else

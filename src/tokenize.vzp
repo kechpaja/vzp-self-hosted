@@ -16,6 +16,7 @@ let charsGoTogether = (a, b) =>
      || (isLetterOrUnderscore(a:0) && isLetterDigitOrUnderscore(b))
      || (isDigit(a:0) && isDigit(b))
      || (isEOL(a:0) && isEOL(b))
+     || (a == ":" && b == 58)
      || ((a == "=" || a == "<" || a == ">" || a == "!") && b == 61)
      || (a == "=" && b == 62) || (a == "!" && b == 61)
      || (a == "<" && b == 64) || (a == "@" && b == 62)
@@ -49,7 +50,7 @@ let simplifyToken = (t) => if isEOL(t:0) then ";" else t
 /* Stuff for removing unnecessary tokens */
 let mergeKeywords = ["==", "!=", "<", "<=", ">", ">=", "||", "&&", ".", "..", 
                      ":", "+", "-", "/", "*", "%", "@>", "<@", "$", "=>", ",",
-                     ";", "then", "else", "as"]
+                     ";", "then", "else", "as", "::"]
 let mergeKeywordsBefore = ["if", "import", "let", "(", "[", "{"] + mergeKeywords
 let mergeKeywordsAfter = [")", "}", "]"] + mergeKeywords
 

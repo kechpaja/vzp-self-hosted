@@ -1,2 +1,2 @@
-let f = (x, y) => () => x(y)
-print([f((x)=>x,55)()])
+let f = (x :: (Int64) Int64, y :: Int64) => () => x(y)
+print([f((x :: Int64)=>x,55)()])

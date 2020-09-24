@@ -17,3 +17,18 @@ f(1,2)
 is regarded as acceptable. Basically, this means not automatically deleting the
 semicolon after + when it's preceded by =, but it's a low-priority change
 because you can get around it easily by putting the + in parentheses.
+
+
+
+For typechecking: 
+
+We need to figure out how to handle imports. There are a couple of options, and
+they're all pretty obvious, but there's some thinking to be done before we
+commit to one. 
+
+We should be removing the type information from lambda params before we get to
+transform. There will probably be a "deoverload" step or something like that,
+and that would be the obvious place to do that.
+
+
+Transform isn't handling if's in function calls right.
