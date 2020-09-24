@@ -1,0 +1,13 @@
+let f = (x :: [Int64]) =>
+    print(x)
+
+let g = (y :: [Int64]) => y
+
+let complex_obj = {
+    inner: ["D"],
+    other: "good"
+}
+
+let r = f(if complex_obj.inner:0 == "ADFADSF" then "asdf" else g(complex_obj.other))
+
+r

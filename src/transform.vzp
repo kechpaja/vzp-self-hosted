@@ -116,6 +116,15 @@ let transform_main = (ast) =>
                            identifier: ast.identifier,
                            value: ast.value.els,
                            body: ast.body } })
+        else if ast.value.type == "call" && anyAssnOrCondIn(ast.value.args) then
+            recur({ type: "assignment",
+                    identifier: ast.identifier,
+                    value: argRec(ast.value.args, 
+                                  [], 
+                                  (args) => { type: "call",
+                                              func: ast.value.func,
+                                              args: args }),
+                    body: ast.body })
         else
             { type: "js-assignment",
               identifier: ast.identifier,
@@ -140,6 +149,8 @@ let transform_main = (ast) =>
                            args: ast.args } })
         else if anyAssnOrCondIn(ast.args) then
             /* TODO This isn't good enough; got js-conditional in output */
+            /* TODO Need to handle case where stuff gets lifted out when the
+             * call is in a lettable position. */
             recur(argRec(ast.args, [], (args) => { type: "call",
                                                    func: ast.func,
                                                    args: args }))
@@ -167,6 +178,15 @@ let transform_main = (ast) =>
                            cond: ast.cond.els,
                            thn: ast.thn,
                            els: ast.els } })
+        else if ast.cond.type == "call" && anyAssnOrCondIn(ast.cond.args) then
+            recur({ type: "conditional",
+                    cond: argRec(ast.cond.args, 
+                                 [],
+                                 (args) => { type: "call",
+                                             func: ast.cond.func,
+                                             args: args }),
+                    thn: ast.thn,
+                    els: ast.els })
         else
             { type: "js-conditional",
               cond: recur(ast.cond),

@@ -29,6 +29,3 @@ commit to one.
 We should be removing the type information from lambda params before we get to
 transform. There will probably be a "deoverload" step or something like that,
 and that would be the obvious place to do that.
-
-
-Transform isn't handling if's in function calls right.
