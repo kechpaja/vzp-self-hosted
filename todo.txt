@@ -30,6 +30,9 @@ We should be removing the type information from lambda params before we get to
 transform. There will probably be a "deoverload" step or something like that,
 and that would be the obvious place to do that.
 
+Remove typechecking from corefuncs once more of these problems are solved. For
+now, it's not safe to do so. 
+
 
 
 For transform: the algorithm needs to be re-thought, since it currently fails
