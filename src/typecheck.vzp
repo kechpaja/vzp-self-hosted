@@ -377,9 +377,10 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         let asdf = ast.not_real.this_field_doesnt_exist
         ast
 
-/* Does not include ==, !=, +, $, @>, <@, :, which are handled separately */
+/* ==, !=, +, $, @>, <@, : are handled separately. Some are still present
+ * in this list; others will be added later. */
 /* TODO ==, !=, $, @>, and <@ can be handled with type variables, which are
- * coming in a later version. */
+ * coming in a later version. Probably handling array concat that way too. */
 let envWithBuiltins = [
     { id: "||", t: function([boolean, boolean], boolean) },
     { id: "&&", t: function([boolean, boolean], boolean) },
@@ -391,6 +392,7 @@ let envWithBuiltins = [
     { id: ">=", t: function([int64, int64], boolean) },
     { id: "<", t: function([int64, int64], boolean) },
     { id: "<=", t: function([int64, int64], boolean) },
+    { id: "+", t: function([int64, int64], int64) },
     { id: "-", t: function([int64, int64], int64) },
     { id: "*", t: function([int64, int64], int64) },
     { id: "/", t: function([int64, int64], int64) },
