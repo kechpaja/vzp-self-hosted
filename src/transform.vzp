@@ -1,7 +1,7 @@
 import typecheck
 import utils
 
-let restOf = (x :: [Any]) => if x.length <= 1 then [] else x:1..(x.length-1)
+let restOf = (x :: [Object]) => if x.length <= 1 then [] else x:1..(x.length-1)
 
 /* Run through AST and add something to IDs to make them unique */
 let uniqueIds = (astOuter :: Object) =>
@@ -92,7 +92,7 @@ let transform_main = (ast :: Object) =>
                          newArgs + [(origArgs:0).els],
                          bottomFunc) }
         else
-            recur(restOf(origArgs), newArgs + origArgs:[0], bottomFunc)
+            recur(restOf(origArgs), newArgs + [origArgs:0], bottomFunc)
 
     if ast.type == "array" then
         if anyAssnOrCondIn(ast.contents) then
@@ -222,7 +222,7 @@ let transform_main = (ast :: Object) =>
               field: ast.field }
     else if ast.type == "lambda" then
         { type: "lambda",
-          params: ((x :: Object) => x.param) $ ast.params, /* XXX remove types*/
+          params: ast.params,
           body: recur(ast.body) }
     else if ast.type == "object" then
         let values = ((x :: Object) => x.value) $ ast.contents

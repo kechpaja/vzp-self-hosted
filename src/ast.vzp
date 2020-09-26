@@ -21,7 +21,7 @@ let stringifyAst = (ast :: Object) =>
     else if ast.type == "field_access" then
         "(field_access " + recur(ast.obj) + " " + ast.field + ")"
     else if ast.type == "lambda" then
-        "(lambda " + utils.join(ast.params) + " => " + recur(ast.body) + ")"
+        "(lambda " + utils.join(((x :: Object) => x.param) $ ast.params) + " => " + recur(ast.body) + ")"
     else
         "UNKNOWN"
 

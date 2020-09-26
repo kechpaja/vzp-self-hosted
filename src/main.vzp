@@ -3,8 +3,6 @@ import parse
 import tokenize
 import ast
 
-/* Obviously there's a lot to do here, such as IO */
-
 let program = IO.read(ENV.argv:2)
 
 if (ENV.argv:1) == "tokenize" then

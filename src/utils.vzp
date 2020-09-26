@@ -6,8 +6,8 @@ let itoa = (number :: Int64) =>
     (if number >= 10 then recur(number / 10) else "") + [(number % 10) + 48]
 
 /* TODO inefficient TODO types */
-let in = (x :: AnyEquable, collection :: Collection) =>
-    || @> ((y :: AnyEquable) => x == y) $ collection false
+let in = (x :: [Int64], collection :: [[Int64]]) =>
+    || @> ((y :: [Int64]) => x == y) $ collection false
 
 let join = (alos :: [[Int64]]) =>
     ((x :: [Int64], y :: [Int64]) =>

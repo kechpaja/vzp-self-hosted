@@ -1,8 +1,424 @@
+import ast as A
 import parse
+import utils
 
-/* TODO we're bypassing typechecking for now */
+let restOf = (list :: [Object]) =>
+    if list.length < 2 then [] else list:(1..(list.length-1))
+
+/* Stuff related to types themselves */
+let narrowest = { category: "dummy", name: "narrowest" } /* Unifies w/ x as x */
+let int64 = { category: "named", name: "Int64" }
+let boolean = { category: "named", name: "Boolean" }
+let object = { category: "named", name: "Object" }
+
+let array = (x :: Object) => { category: "array", contents: x }
+let function = (ps :: [Object], r :: Object) =>
+    { category: "function", return: r, params: ps }
+
+let stringifyType = (t :: Object) =>
+    if t.category == "array" then
+        "[" + recur(t.contents) + "]"
+    else if t.category == "function" then
+        "(" + utils.join(recur $ t.params) + ") " + recur(t.return)
+    else if t.category == "named" || t.category == "dummy" then
+        t.name
+    else if t.category == "error" then
+        "Error: " + t.name
+    else
+        "" + t
+
+/* TODO when we introduce user-defined types, this will get more complex
+ * Also, for now we handle objects as just named types, and don't look inside.
+ * But eventually we're going to have to look inside. We will also need to 
+ * eventually distinguish between unifying to the most general and unifying to
+ * the most specific type. */
+let unify = (t1 :: Object, t2 :: Object) =>
+    if t1.category == "error" then t1
+    else if t2.category == "error" then t2
+    else if t1.category == "dummy" && t1.name == "narrowest" then t2
+    else if t2.category == "dummy" && t2.name == "narrowest" then t1
+    else if t1.category != t2.category then 
+        { category: "error",
+          name: "incompatible types: " + stringifyType(t1) + ", "
+                                       + stringifyType(t2) }
+    else if t1.category == "named" then
+        if t1.name == t2.name then t1 else
+        { category: "error",
+          name: "named types do not match: " + t1.name + ", " + t2.name }
+    else if t1.category == "array" then
+        let inner = recur(t1.contents, t2.contents)
+        if inner.category == "error" then
+            { category: "error", name: "array types: " + stringifyType(t1)
+                                                + ", " + stringifyType(t2) }
+        else
+            array(inner)
+    else if t1.category == "function" then
+        let unifiedReturn = recur(t1.return, t2.return)
+        if unifiedReturn.category == "error" then unifiedReturn else
+        if t1.params.length != t2.params.length then
+            { category: "error", name: "arity mismatch" }
+        else
+
+        let recFunc = recur
+        let unifyTwoLists = (x :: [Object], y :: [Object]) =>
+            if x == [] then [] else 
+            [recFunc(x:0, y:0)] + recur(restOf(x), restOf(y))
+
+        /* TODO condense errors? */
+
+        function(unifyTwoLists(t1.params, t2.params), unifiedReturn)
+
+        /* That's a hack for functions. Need to do what we do for arrays. */
+    else
+        {category: "error", name: "unrecognized type category: " + t1.category }
+
+let unifyList = (list :: [Object]) => unify @> list narrowest
+
+let appendToEnv = (id :: [Int64], t :: Object, env :: [Object]) =>
+    [{ id: id, t: t}] + env
+let getFromEnv = (id :: [Int64], env :: [Object]) =>
+    if env == [] then { category: "error", name: "unbound: " + id } else
+    if (env:0).id == id then (env:0).t else recur(id, restOf(env))
+
+
+/* Returns a new AST with annotations */
+let typecheck = (ast :: Object, env :: [Object]) =>
+    let recWithSameEnv = let rf = recur; (x :: Object) => rf(x, env)
+
+    if ast.type == "array" then
+        let newContents = recWithSameEnv $ ast.contents
+        let innerType = unifyList(((x :: Object) => x.ann) $ newContents)
+        if innerType.category == "error" then 
+            { type: "array",
+              contents: newContents,
+              ann: { category: "error",
+                     name: "array: " + innerType.name } }
+        else
+            { type: "array",
+              contents: newContents,
+              ann: array(innerType) }
+    else if ast.type == "assignment" then
+        let newValue = recur(ast.value, env)
+        /* TODO error case! */
+        let newBody = recur(ast.body, appendToEnv(ast.identifier,
+                                                  newValue.ann,
+                                                  env))
+        { type: "assignment",
+          identifier: ast.identifier,
+          value: newValue,
+          body: newBody,
+          ann: newBody.ann }
+    else if ast.type == "call" then
+        let newFunc = recur(ast.func, env)
+        let newArgs = recWithSameEnv $ ast.args
+        let argTypes = ((x :: Object) => x.ann) $ newArgs
+
+        /* Special cases for builtins! */
+        if newFunc.type == "lookup" && utils.in(newFunc.identifier,
+                                                ["==", "!="])
+                                    && newArgs.length == 2 then
+            let unified = unify((newArgs:0).ann, (newArgs:1).ann)
+            if unified.category == "error" then
+                { type: "call",
+                  func: newFunc,
+                  args: newArgs,
+                  ann: unified }
+            else
+                { type: "call",
+                  func: newFunc,
+                  args: newArgs,
+                  ann: boolean }
+        else if newFunc.type == "lookup" && newFunc.identifier == "+"
+                                         && newArgs.length == 2 then
+            let argsType = unify((newArgs:0).ann, (newArgs:1).ann)
+            if argsType.category == "named" && argsType.name == "Int64" then
+                { type: "call",
+                  func: { type: "lookup",
+                          identifier: "+" },
+                  args: newArgs,
+                  ann: argsType }
+            else if argsType.category == "array" then
+                { type: "call",
+                  func: { type: "lookup",
+                          identifier: "array+" },
+                  args: newArgs,
+                  ann: argsType }
+            else
+                { type: "call",
+                  func: newFunc,
+                  args: newArgs,
+                  ann: narrowest }
+        else if newFunc.type == "lookup" && newFunc.identifier == "$"
+                                         && newArgs.length == 2 then
+            if (newArgs:0).ann.category == "function" 
+                    && (newArgs:0).ann.params.length == 1
+                    && (newArgs:1).ann.category == "array"
+                    && unify((newArgs:0).ann.params:0,
+                             (newArgs:1).ann.contents).category != "error" then
+                { type: "call",
+                  func: newFunc,
+                  args: newArgs,
+                  ann: array((newArgs:0).ann.return) }
+            else
+                { type: "call",
+                  func: newFunc,
+                  args: newArgs,
+                  ann: narrowest } /* TODO actually check types here */
+        else if newFunc.type == "lookup" && newFunc.identifier == ":"
+                                         && newArgs.length == 2 then
+            if (newArgs:0).ann.category == "array"
+                    && (newArgs:1).ann.category == "named"
+                    && (newArgs:1).ann.name == "Int64" then
+                { type: "call",
+                  func: newFunc,
+                  args: newArgs,
+                  ann: (newArgs:0).ann.contents }
+            else if (newArgs:0).ann.category == "dummy"
+                    && (newArgs:1).ann.category == "named"
+                    && (newArgs:1).ann.name == "Int64" then
+                { type: "call",
+                  func: newFunc,
+                  args: newArgs,
+                  ann: narrowest }
+            else if ((newArgs:0).ann.category == "array"
+                    || (newArgs:0).ann.category == "dummy")
+                    && (newArgs:1).ann.category == "array"
+                    && (newArgs:1).ann.contents.category == "named"
+                    && (newArgs:1).ann.contents.name == "Int64" then
+                { type: "call",
+                  func: newFunc,
+                  args: newArgs,
+                  ann: (newArgs:0).ann }
+            else
+                { type: "call",
+                  func: newFunc,
+                  args: newArgs,
+                  ann: { category: "error", name: "incompatible types in ':'" } }
+        else if newFunc.type == "lookup" && newFunc.identifier == "@>"
+                                         && newArgs.length == 3 then
+            let one = (newArgs:0).ann
+            let two = (newArgs:1).ann
+            let three = (newArgs:2).ann
+            if one.category == "function" && one.params.length == 2
+                    && (two.category == "array"
+                        && unify(one.params:0,
+                                 two.contents).category != "error")
+                        || two.category == "dummy" then
+                { type: "call",
+                  func: newFunc,
+                  args: newArgs,
+                  ann: unify(one.return, unify(one.params:1, three)) }
+            else
+                { type: "call",
+                  func: newFunc,
+                  args: newArgs,
+                  ann: { category: "error", name: "type mismatch in @>" } }
+        else if newFunc.type == "lookup" && newFunc.identifier == "<@"
+                                         && newArgs.length == 3 then
+            let one = (newArgs:0).ann
+            let two = (newArgs:1).ann
+            let three = (newArgs:2).ann
+            if one.category == "function" && one.params.length == 2
+                    && three.category == "array"
+                    && unify(one.params:1,
+                             three.contents).category != "error" then
+                { type: "call",
+                  func: newFunc,
+                  args: newArgs,
+                  ann: unify(one.return, unify(one.params:0, two)) }
+            else
+                { type: "call",
+                  func: newFunc,
+                  args: newArgs,
+                  ann: { category: "error", name: "type mismatch in @>" } }
+
+        /* TODO */
+        /* Allow us to call object fields. Remove when we type object fields. */
+        else if newFunc.ann.category == "dummy" then
+            { type: "call",
+              func: newFunc,
+              args: newArgs,
+              ann: narrowest }
+
+        else if newFunc.ann.category == "error" then
+            { type: "call",
+              func: newFunc,
+              args: newArgs,
+              ann: newFunc.ann }
+       /* else if unifyList(argTypes).category == "error" then
+            { type: "call",
+              func: newFunc,
+              args: newArgs,
+              ann: unifyList(argTypes) }*/
+        else
+            let recFunc = recur
+            /* This assumes that the lists are the same length */
+            let checkArgs = (a1 :: [Object], a2 :: [Object]) =>
+                if a1 == [] || a2 == [] then "" else
+                let unified = unify(a1:0, a2:0)
+                let recResult = recur(restOf(a1), restOf(a2))
+                if unified.category == "error" then
+                    unified.name + recResult
+                else
+                    ""
+
+            if ast.args.length != newFunc.ann.params.length then
+                { type: "call",
+                  func: newFunc,
+                  args: newArgs,
+                  ann: { category: "error", name: "arity mismatch" } }
+            else 
+                let x = checkArgs(argTypes, newFunc.ann.params)
+                if x != "" then
+                    { type: "call",
+                      func: newFunc,
+                      args: newArgs,
+                      ann: { category: "error", name: "arg types: " + x } }
+                else
+                    { type: "call",
+                      func: newFunc,
+                      args: newArgs,
+                      ann: newFunc.ann.return }
+    else if ast.type == "conditional" then
+        let newCond = recur(ast.cond, env)
+        let newThn = recur(ast.thn, env)
+        let newEls = recur(ast.els, env)
+        if newCond.ann.category == "error" then
+            { type: "conditional",
+              cond: newCond,
+              thn: newThn,
+              els: newEls,
+              ann: newCond.ann }
+        else if newCond.ann.category == "dummy" || 
+                    newCond.ann.category == "named" 
+                 && newCond.ann.name == "Boolean" then
+            let newType = unify(newThn.ann, newEls.ann)
+            { type: "conditional",
+              cond: newCond,
+              thn: newThn,
+              els: newEls,
+              ann: newType }
+        else 
+            { type: "conditional",
+              cond: newCond,
+              thn: newThn,
+              els: newEls,
+              ann: { category: "error", name: "Cond requires a boolean." } }
+    else if ast.type == "field_access" then
+        let newObj = recur(ast.obj, env)
+        if newObj.ann.category == "array" && ast.field == "length" then
+            { type: "field_access", /* XXX Get rid of this special case if we */
+              obj: newObj,          /* ever replace .length */
+              field: ast.field,
+              ann: int64 }
+        else if !((newObj.ann.category == "named" 
+                    && newObj.ann.name == "Object")
+                  || newObj.ann.category == "dummy") then
+            { type: "field_access",
+              obj: newObj,
+              field: ast.field,
+              ann: { category: "error",
+                     name: "field access: " + A.stringifyAst(ast) + " . "
+                                        + " // " + stringifyType(newObj.ann) } }
+        else
+            { type: "field_access",
+              obj: newObj,
+              field: ast.field,
+              ann: narrowest } /* TODO eventually check types of fields */
+    else if ast.type == "import" then
+        { type: "import",
+          module: ast.module,
+          ann: narrowest } /* TODO eventually going to need to handle imports */
+    else if ast.type == "lambda" then
+        let midEnv = ((p :: Object, e :: [Object]) => 
+                        appendToEnv(p.param, p.ann, e)) @> ast.params env
+        let paramsWithoutTypes = ((p :: Object) => p.param) $ ast.params
+        let paramTypes = ((p :: Object) => p.ann) $ ast.params
+        let newEnv = appendToEnv("recur", function(paramTypes,narrowest),midEnv)
+        let newBody = recur(ast.body, newEnv)
+        if newBody.ann.category == "error" then
+            { type: "lambda",
+              params: paramsWithoutTypes,
+              body: newBody,
+              ann: newBody.ann }
+        else
+            { type: "lambda",
+              params: paramsWithoutTypes,
+              body: newBody,
+              ann: function(paramTypes, newBody.ann) }
+    else if ast.type == "lookup" then
+        { type: "lookup",
+          identifier: ast.identifier,
+          ann: getFromEnv(ast.identifier, env) }
+    else if ast.type == "number" then
+        { type: "number",
+          value: ast.value,
+          ann: int64 }
+    else if ast.type == "object" then
+        let recFunc = recur
+        let handleKeyValuePair = (x :: Object) =>
+            { identifier: x.identifier, value: recFunc(x.value, env) }
+        let newContents = handleKeyValuePair $ ast.contents
+        let forFold = (x :: Object, y :: [Int64]) =>
+            if x.value.ann.category == "error" then
+                x.value.ann.name + ", " + y
+            else
+                y
+        let errorsString = forFold @> newContents ""
+        if errorsString.length > 0 then
+            { type: "object",
+              contents: newContents,
+              ann: { category: "error", name: "object: " + errorsString } }
+        else
+            { type: "object",
+              contents: newContents,
+              ann: { category: "named", name: "Object" } }
+    else
+        let asdf = ast.not_real.this_field_doesnt_exist
+        ast
+
+/* Does not include ==, !=, +, $, @>, <@, :, which are handled separately */
+/* TODO ==, !=, $, @>, and <@ can be handled with type variables, which are
+ * coming in a later version. */
+let envWithBuiltins = [
+    { id: "||", t: function([boolean, boolean], boolean) },
+    { id: "&&", t: function([boolean, boolean], boolean) },
+    { id: "short circuit||", t: function([function([], boolean), 
+                                          function([], boolean)], boolean) },
+    { id: "short circuit&&", t: function([function([], boolean), 
+                                          function([], boolean)], boolean) },
+    { id: ">", t: function([int64, int64], boolean) },
+    { id: ">=", t: function([int64, int64], boolean) },
+    { id: "<", t: function([int64, int64], boolean) },
+    { id: "<=", t: function([int64, int64], boolean) },
+    { id: "-", t: function([int64, int64], int64) },
+    { id: "*", t: function([int64, int64], int64) },
+    { id: "/", t: function([int64, int64], int64) },
+    { id: "%", t: function([int64, int64], int64) },
+    { id: "..", t: function([int64, int64], array(int64)) },
+    { id: "!", t: function([boolean], boolean) },
+    { id: "unary -", t: function([int64], int64) },
+    { id: "print", t: function([array(int64)], array(int64)) },
+    { id: "true", t: boolean },
+    { id: "false", t: boolean },
+    { id: "IO", t: narrowest },
+    { id: "ENV", t: narrowest }
+]
+
+/* TODO IO functions once object fields work */
+
+/* TODO remember error checking when we call this */
 let typecheck_main = (ast :: Object) =>
-    if !ast.wellFormed then print("BAD" + ast.error) else ast.ast
+    if !ast.wellFormed then 
+        { type: "array", 
+          contents: ((x :: Int64) => { type: "number", value: x }) $ "BAD AST" }
+    else
+        let tc = typecheck(ast.ast, envWithBuiltins)
+        if tc.ann.category == "error" then
+            let unused = print("Error: " + tc.ann.name)
+            { type: "number", value: 1 }
+        else
+            tc
 
 /* Export a nice simple function */
 (program_as_string :: [Int64]) => typecheck_main(parse(program_as_string))

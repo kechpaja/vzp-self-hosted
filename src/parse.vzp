@@ -3,7 +3,13 @@ import ast
 import utils
 
 /* TODO this should be in a library somewhere */
-let restOf = (array :: [typeVar]) =>
+let restOf = (array :: [[Int64]]) =>
+    if array.length < 2 then [] else array:(1..(array.length-1))
+
+let restOfOps = (array :: [[[Int64]]]) =>
+    if array.length < 2 then [] else array:(1..(array.length-1))
+
+let restOfString = (array :: [Int64]) =>
     if array.length < 2 then [] else array:(1..(array.length-1))
 
 let opsByPrec = [ [ "||" ], /* Lowest to highest */
@@ -29,7 +35,7 @@ let isValidId = (string :: [Int64]) =>
     (string.length > 0)
  && isAlpha(string:0)
  && ((x :: Int64, y :: Int64) => x && (isAlpha(y) || isDigit(y))) 
-                                                    <@ true restOf(string)
+                                                    <@ true restOfString(string)
 
 let fail = (error :: [Int64]) =>
     let unused = print(error)
@@ -65,7 +71,7 @@ let parseTypeAnn = (tokens :: [[Int64]]) =>
     /* TODO this will get longer when we add objects, hashes, sets (tuples?) */
     if tokens.length < 1 then { wellFormed: false } else
     if isValidId(tokens:0) then 
-        { ann: { type: "simple",
+        { ann: { category: "named",
                  name: tokens:0 },
           rest: restOf(tokens), 
           wellFormed: true }
@@ -76,7 +82,7 @@ let parseTypeAnn = (tokens :: [[Int64]]) =>
             else
                 let retType = recur(restOf(list.rest))
                 if !retType.wellFormed then { wellFormed: false } else
-                { ann: { type: "function",
+                { ann: { category: "function",
                          return: retType.ann,
                          params: list.ann },
                   rest: retType.rest,
@@ -86,7 +92,7 @@ let parseTypeAnn = (tokens :: [[Int64]]) =>
         if !inner.wellFormed || inner.rest.length < 1 
                              || !checkFor(inner.rest, "]")
             then { wellFormed: false }
-            else { ann: { type: "array", contents: inner.ann },
+            else { ann: { category: "array", contents: inner.ann },
                    rest: restOf(inner.rest),
                    wellFormed: true }
     else
@@ -341,7 +347,7 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
         else
             fail("There's something wrong with this token: " + (tokens:0) + ":")
     else
-        let left = recur(restOf(operations), tokens)
+        let left = recur(restOfOps(operations), tokens)
         if !left.wellFormed then fail(left.error) else
         if left.rest.length == 0 || !utils.in(left.rest:0, operations:0) then
             left

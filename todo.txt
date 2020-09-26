@@ -29,3 +29,10 @@ commit to one.
 We should be removing the type information from lambda params before we get to
 transform. There will probably be a "deoverload" step or something like that,
 and that would be the obvious place to do that.
+
+
+
+For transform: the algorithm needs to be re-thought, since it currently fails
+for a number of cases (not yet represented in the tests) in which there are
+several nested layers of ifs, lets, and other constructions in a lettable
+position.

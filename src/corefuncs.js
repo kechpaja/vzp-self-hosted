@@ -51,20 +51,6 @@ function __61__61_(left, right) {
         return true;
     }
 
-    if (typeof left === "object" && typeof right === "object") {
-        if (Object.keys(left).length !== Object.keys(right).length) {
-            return false;
-        }
-
-        for (let key in left) {
-            // Since JS returns undefined when a key isn't found, this should
-            // also catch discrepencies between the sets of keys.
-            if (left.hasOwnProperty(key) && left[key] !== right[key]) {
-                return false;
-            }
-        }
-    }
-
     if (Array.isArray(left) && Array.isArray(right)) {
         if (left.length != right.length) {
             return false;
@@ -77,6 +63,20 @@ function __61__61_(left, right) {
         }
 
         return true;
+    }
+
+    if (typeof left === "object" && typeof right === "object") {
+        if (Object.keys(left).length !== Object.keys(right).length) {
+            return false;
+        }
+
+        for (let key in left) {
+            // Since JS returns undefined when a key isn't found, this should
+            // also catch discrepencies between the sets of keys.
+            if (left.hasOwnProperty(key) && left[key] !== right[key]) {
+                return false;
+            }
+        }
     }
 
     return false; // Easier than worrying about when to fail
@@ -133,7 +133,12 @@ function __43_(left, right) {
         return left.concat(right);
     }
 
-    throw "+ requires two numbers or arrays; got '" + left + "' and '" + right + "' instead";
+    throw "+ requires two numbers or arrays; got '" + left + "' and '" + JSON.stringify(right) + "' instead";
+}
+
+/* array+ */
+function _array_43_(left, right) {
+    return left.concat(right);
 }
 
 /* - */
