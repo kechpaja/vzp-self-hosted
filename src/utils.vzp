@@ -20,6 +20,12 @@ let isAlpha = (c :: Int64) => (c <= 90 && c >= 65) || (c <= 122 && c >= 97)
 
 let isAlnum = (c :: Int64) => isDigit(c) || isAlpha(c)
 
+let lastCharIndexHelper = (string :: [Int64], c :: Int64, index :: Int64) =>
+    if index < 0 || string:index == c then index else recur(string, c, index-1)
+
+let lastCharIndex = (string :: [Int64], c :: Int64) =>
+    lastCharIndexHelper(string, c, string.length-1)
+
 
 {
     atoi: atoi,
@@ -27,5 +33,6 @@ let isAlnum = (c :: Int64) => isDigit(c) || isAlpha(c)
     in: in,
     isAlnum: isAlnum,
     isDigit: isDigit,
-    join: join
+    join: join,
+    lastCharIndex: lastCharIndex
 }

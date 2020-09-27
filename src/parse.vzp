@@ -1,5 +1,5 @@
-import tokenize
 import ast
+import tokenize
 import utils
 
 /* TODO this should be in a library somewhere */
@@ -410,13 +410,25 @@ let loadAndParseFile = (filename :: [Int64]) =>
     if !tree.wellFormed then tree else convertImports(tree.ast)
 
 
+let resolveModule = (currentModule :: [Int64], newModuleName :: [Int64]) =>
+    let slashIndex = utils.lastCharIndex(currentModule, 47) /* slash */
+    let path = if slashIndex < 0 then "" else currentModule:(0..(slashIndex))
+    path + newModuleName
+
+
+let stripPath = (moduleName :: [Int64]) =>
+    let slashIndex = utils.lastCharIndex(moduleName, 47)
+    if slashIndex < 0 then moduleName 
+                      else moduleName:((slashIndex+1)..(moduleName.length-1))
+
+
 let loadProgramAndImports = (module :: [Int64]) =>
-    let program = loadAndParseFile(module + ".vzp") /* TODO get filename from module name */
+    let program = loadAndParseFile(module + ".vzp")
     if !program.wellFormed then fail(program.error) else
     let recFunc = recur
     let f = (moduleName :: [Int64], loadedModules :: Object) =>
         if utils.in(moduleName, 
-                    ((x :: Object) => x.name) $ loadedModules.modules) then
+                    ((x :: Object) => x.path) $ loadedModules.modules) then
             loadedModules
         else
             let recResult = recFunc(moduleName)
@@ -426,16 +438,23 @@ let loadProgramAndImports = (module :: [Int64]) =>
                 { modules: recResult.modules + loadedModules.modules,
                   wellFormed: true }
 
-    let results = (f @> program.modules { modules: [], wellFormed: true })
+    let resolvedModules = ((x :: [Int64]) => 
+                                resolveModule(module, x)) $ program.modules
+
+    let results = (f @> resolvedModules { modules: [], wellFormed: true })
     /*if !(&& @> (((x :: Object) => x.wellFormed) $ results) true) then*/
     if !results.wellFormed then
         results
     else
-        { modules: results.modules + [{ name: module, value: program.ast }],
+        { modules: results.modules + [{ name: stripPath(module),
+                                        path: module,
+                                        value: program.ast }],
           wellFormed: true }
 
 
-/* Set everything up in the proper let bindings */
+/* Set everything up in the proper let bindings 
+ * Currently, this assumes that we won't ever load multiple modules with the
+ * same name (filename minus the extension). Will need to improve it later. */
 let generateFinalProgram = (modules :: [Object]) =>
     if modules == [] then fail("No program!")
     else if modules.length == 1 then

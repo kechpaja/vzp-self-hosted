@@ -1,61 +1,37 @@
 NODEJS 		= node
 RUN			= ./run.sh
 
-default: build
+default: dev
 
-dev: build_dev
-
-build: src/*.vzp src/corefuncs.js
+dev: staging
 	@if [[ "$$USING_VERSION" == "" ]]; then \
 		USING_VERSION="`ls versions/ | sort -V | tail -n 1`"; \
 	fi; \
-	TMP_STAGING_DIR="`mktemp -d`"; \
-	for f in src/*.vzp; do \
-		f_nodir="$${f##*/}"; \
-		$(RUN) "$$USING_VERSION" compile "$$f" > "$$TMP_STAGING_DIR/$${f_nodir/.vzp/.js}"; \
-	done; \
-	mkdir -p versions/00-testing/staging; \
-	npx webpack -o versions/00-testing/staging/vzp.js --target=node --mode=production --silent "$$TMP_STAGING_DIR/main.js"; \
-	cp src/*.js versions/00-testing/staging/; \
-	for f in src/*.vzp; do \
-		f_nodir="$${f##*/}"; \
-		$(RUN) 00-testing/staging compile "$$f" > "$$TMP_STAGING_DIR/$${f_nodir/.vzp/.js}"; \
-	done; \
-	npx webpack -o versions/00-testing/vzp.js --target=node --mode=production --silent "$$TMP_STAGING_DIR/main.js"; \
-	cp src/*.js versions/00-testing/; \
-	$(RM) -rf versions/00-testing/staging \
-	$(RM) -rf "$$TMP_STAGING_DIR"
+	$(RUN) "$$USING_VERSION" src/main > versions/00-testing/vzp.js; \
+	cp src/*.js versions/00-testing/;
 
-build_dev: src/*.vzp src/corefuncs.js
+# TODO stuff that could go in a prod recipe
+#TMP_STAGING_DIR="`mktemp -d`"; \
+#npx webpack -o versions/00-testing/staging/vzp.js --target=node --mode=production --silent "$$TMP_STAGING_DIR/main.js"; \
+#$(RM) -rf versions/00-testing/staging \
+#$(RM) -rf "$$TMP_STAGING_DIR"
+
+
+staging: src/*.vzp src/corefuncs.js
 	@if [[ "$$USING_VERSION" == "" ]]; then \
 		USING_VERSION="`ls versions/ | sort -V | tail -n 1`"; \
 	fi; \
-	TMP_STAGING_DIR="`mktemp -d`"; \
-	for f in src/*.vzp; do \
-		f_nodir="$${f##*/}"; \
-		$(RUN) "$$USING_VERSION" compile "$$f" > "$$TMP_STAGING_DIR/$${f_nodir/.vzp/.js}"; \
-	done; \
 	mkdir -p versions/00-testing/staging; \
-	npx webpack -o versions/00-testing/staging/vzp.js --target=node --mode=development --silent "$$TMP_STAGING_DIR/main.js"; \
-	cp src/*.js versions/00-testing/staging/; \
-	for f in src/*.vzp; do \
-		f_nodir="$${f##*/}"; \
-		$(RUN) 00-testing/staging compile "$$f" > "$$TMP_STAGING_DIR/$${f_nodir/.vzp/.js}"; \
-	done; \
-	npx webpack -o versions/00-testing/vzp.js --target=node --mode=development --silent "$$TMP_STAGING_DIR/main.js"; \
-	cp src/*.js versions/00-testing/; \
-	$(RM) -rf versions/00-testing/staging \
-	$(RM) -rf "$$TMP_STAGING_DIR"
+	$(RUN) "$$USING_VERSION" src/main > versions/00-testing/staging/vzp.js; \
+	cp src/*.js versions/00-testing/staging/;
 
-test: build
+test: 
 	@echo "=================================================="
 	@echo "Running tests. Successful tests produce no output."
 	@echo "=================================================="
 	@TMPDIR="`mktemp -d`"; \
 	for dir in tests/*; do \
-		for f in $$dir/*.vzp; do \
-			$(RUN) 00-testing compile "$$f" > "$${f/.vzp/.js}"; \
-		done; \
+		$(RUN) 00-testing "$$dir/program" > "$$dir/program.js"; \
 		$(NODEJS) "$$dir/program.js" > "$$TMPDIR/stdout" 2> "$$TMPDIR/stderr"; \
 		diff "$$dir/stdout" "$$TMPDIR/stdout"; \
 		if [[ "$$?" == "1" ]]; then echo "$$dir/stdout failed"; fi; \
