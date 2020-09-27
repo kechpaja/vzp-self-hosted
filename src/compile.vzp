@@ -1,16 +1,15 @@
-import transform
+import defunc
 import utils
 
-let escapeId = (id :: [Int64]) =>
+let escape = (id :: [Int64]) =>
     if utils.in(id, ["true", "false"]) then id else
     let f = (c :: Int64) => 
         if utils.isAlnum(c) then [c] else "_" + utils.itoa(c) + "_"
     "_" + ((+) <@ [] f $ id)
 
-let compile_js = (ast :: Object, isBound :: Boolean, depth :: Int64) =>
-    let recTrue = let rf = recur; (x :: Object) => rf(x, true, depth + 1)
-    let recFalse = let rf = recur; (x :: Object) => rf(x, false, depth + 1)
-    let depthId = "_0_" + utils.itoa(depth)
+let compile_body_js = (ast :: Object, isBound :: Boolean) =>
+    let recTrue = let rf = recur; (x :: Object) => rf(x, true)
+    let recFalse = let rf = recur; (x :: Object) => rf(x, false)
 
     let wrap = (x :: [Int64]) => if isBound then x else "return " + x + ";"
 
@@ -23,32 +22,32 @@ let compile_js = (ast :: Object, isBound :: Boolean, depth :: Int64) =>
         if ast.field == "length" then /* TODO this will not work long term */
             wrap(recTrue(ast.obj) + ".length")
         else
-            wrap(recTrue(ast.obj) + "." + escapeId(ast.field))
+            wrap(recTrue(ast.obj) + "." + escape(ast.field))
     else if ast.type == "js-conditional" then
         "if(" + recTrue(ast.cond) + "){" + recFalse(ast.thn) + "}else{"
                                          + recFalse(ast.els) + "}"
     else if ast.type == "js-assignment" then
-        "let " + escapeId(ast.identifier) + "=" + recTrue(ast.value) + ";" 
+        "let " + escape(ast.identifier) + "=" + recTrue(ast.value) + ";" 
                                                 + recFalse(ast.body)
     else if ast.type == "import" then
         wrap("require('./" + ast.module + ".js').vzpModule")
-    else if ast.type == "lambda" then
-        wrap("(function () {"
-      + "function " + depthId + "(" + utils.join(escapeId $ ast.params) + "){"
-                   + "let _recur=" + depthId + ";" + recFalse(ast.body) + "}"
-      + "return " + depthId + ";})()")
     else if ast.type == "lookup" then
-        wrap(escapeId(ast.identifier))
+        wrap(escape(ast.identifier))
     else if ast.type == "number" then
         wrap(utils.itoa(ast.value))
     else if ast.type == "object" then
         let f = (elem :: Object) => 
-            escapeId(elem.identifier) + ":" + recTrue(elem.value)
+            escape(elem.identifier) + ":" + recTrue(elem.value)
         wrap("{" + utils.join(f $ ast.contents) + "}")
     else
         "UNKNOWN" + ast.type
 
+let compile_func_js = (func :: Object) =>
+    "function " + escape(func.name) + "(" + utils.join(escape $ func.params)
+                + "){" + compile_body_js(func.body, false) + "}"
+
 (program_as_string :: [Int64]) =>
+    let prog = defunc(program_as_string)
     "module.exports={vzpModule:(function(){"
-  + compile_js(transform(program_as_string), false, 0)
+  + (+ @> (compile_func_js $ prog.funcs) compile_body_js(prog.ast, false))
   + "})()};" /* TODO various args and such */ 
