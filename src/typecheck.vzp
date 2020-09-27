@@ -325,10 +325,6 @@ let typecheck = (ast :: Object, env :: [Object]) =>
               obj: newObj,
               field: ast.field,
               ann: narrowest } /* TODO eventually check types of fields */
-    else if ast.type == "import" then
-        { type: "import",
-          module: ast.module,
-          ann: narrowest } /* TODO eventually going to need to handle imports */
     else if ast.type == "lambda" then
         let midEnv = ((p :: Object, e :: [Object]) => 
                         appendToEnv(p.param, p.ann, e)) @> ast.params env

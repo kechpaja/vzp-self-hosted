@@ -1,10 +1,7 @@
 Start optimizing stuff, and figure out how to emit LLVM!
 
-And not to mention typechecking, of course.
-
-
 Remember to use ulimit to set stack size limit, and --stack-size to node as
-well. Currently it works with a stack size of 9000 kb, but I'd like to try and
+well. Currently it works with a stack size of 5000 kb, but I'd like to try and
 bring this down to where I don't have to up the limit anymore.
 
 
@@ -22,16 +19,23 @@ because you can get around it easily by putting the + in parentheses.
 
 For typechecking: 
 
-We need to figure out how to handle imports. There are a couple of options, and
-they're all pretty obvious, but there's some thinking to be done before we
-commit to one. 
-
-We should be removing the type information from lambda params before we get to
-transform. There will probably be a "deoverload" step or something like that,
-and that would be the obvious place to do that.
+Imports are handled, but it might be a good idea to allow for linking to files
+that aren't going to be included in the binary or JS output. Need to think
+about how to make sure we get the type information we need. 
 
 Remove typechecking from corefuncs once more of these problems are solved. For
-now, it's not safe to do so. 
+now, it's not safe to do so.
+
+In the long run, we can probably get rid of the corefuncs file entirely, and
+just generate lightweight functions for the builtings when they are used in a
+context where they can't be emited as operators in JS or LLVM.
+
+Semi-tangentially, we need to think about the syntax for user-defined types a
+bit more. There's some room for variation there, but also no need to go too far
+overboard. 
+
+If the typechecker can catch and reject (some) infinite loops, that would be
+useful.  
 
 
 
@@ -58,4 +62,21 @@ imports.
 
 
 
-Maybe eventually complain if there are unreachable tokens in the file? 
+Maybe eventually complain if there are unreachable tokens in the file?
+
+
+There are also a handful of syntactic changes that I would like to implement at
+some point, but those need to be batched as they will require a fair bit of
+work on my part to change things in the compiler. For now, the ones I'm
+thinking of are:
+
+ - The + operator should no longer be overloaded. Add ++ or something like that
+   for lists.
+
+ - Array access should no longer use :. Consider either more traditional syntax
+   or treating arrays as callable on integers; the latter may be preferable
+   since it allows us to use $ and other functions.
+
+ - Require a comma between the second and third arguments of @> and <@.
+
+ - More that I can't think of right now.

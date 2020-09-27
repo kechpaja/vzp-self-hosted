@@ -29,8 +29,6 @@ let compile_body_js = (ast :: Object, isBound :: Boolean) =>
     else if ast.type == "js-assignment" then
         "let " + escape(ast.identifier) + "=" + recTrue(ast.value) + ";" 
                                                 + recFalse(ast.body)
-    else if ast.type == "import" then
-        wrap("require('./" + ast.module + ".js').vzpModule")
     else if ast.type == "lookup" then
         wrap(escape(ast.identifier))
     else if ast.type == "number" then
@@ -48,6 +46,4 @@ let compile_func_js = (func :: Object) =>
 
 (program_as_string :: [Int64]) =>
     let prog = defunc(program_as_string)
-    "module.exports={vzpModule:(function(){"
-  + (+ @> (compile_func_js $ prog.funcs) compile_body_js(prog.ast, false))
-  + "})()};" /* TODO various args and such */ 
+    (+ @> (compile_func_js $ prog.funcs) compile_body_js(prog.ast, false))
