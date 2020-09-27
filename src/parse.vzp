@@ -233,36 +233,6 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
                              body: body.ast },
                       rest: body.rest,
                       wellFormed: true }
-        else if tokens:0 == "import" then
-            /* TODO consider allowing a string as the value you import from? */
-            if tokens.length < 4 || !isValidId(tokens:1) then
-                fail("Malformed import statement")
-            else
-                if (tokens.length >= 6) && ((tokens:2) == "as")
-                                        && isValidId(tokens:3) then
-                    if !checkFor(tokens:(4..(tokens.length-1)), ";") then
-                        fail("Missing semicolon or newline in import")
-                    else
-                        let body=recurWithFullOps(tokens:(5..(tokens.length-1)))
-                        if !body.wellFormed then fail(body.error) else
-                        { ast: { type: "assignment",
-                                 identifier: (tokens:3),
-                                 value: { type: "import", module: (tokens:1) },
-                                 body: body.ast },
-                          rest: body.rest,
-                          wellFormed: true }
-                else
-                    if !checkFor(tokens:(2..(tokens.length-1)), ";") then
-                        fail("Missing semicolon or newline in import")
-                    else
-                        let body=recurWithFullOps(tokens:(3..(tokens.length-1)))
-                        if !body.wellFormed then fail(body.error) else
-                        { ast: { type: "assignment",
-                                 identifier: (tokens:1),
-                                 value: { type: "import", module: (tokens:1) },
-                                 body: body.ast },
-                          rest: body.rest,
-                          wellFormed: true }
         else if tokens:0 == "[" then
             let list = parseArgList(restOf(tokens), recurWithFullOps)
             if !list.wellFormed || ! checkFor(list.rest, "]") then
@@ -387,5 +357,109 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
                   rest: third.rest,
                   wellFormed: true }
 
+let parseWithImports = (tokens :: [[Int64]]) =>
+    if tokens:0 == "import" then
+        /* TODO consider allowing a string as the value you import from? */
+        if tokens.length < 4 || !isValidId(tokens:1) then
+            fail("Malformed import statement")
+        else if (tokens.length >= 6) && ((tokens:2) == "as")
+                                     && isValidId(tokens:3) then
+            if !checkFor(tokens:(4..(tokens.length-1)), ";") then
+                fail("Missing semicolon or newline in import")
+            else
+                let body = recur(tokens:(5..(tokens.length-1)))
+                if !body.wellFormed then fail(body.error) else
+                { ast: { type: "import",
+                         module: tokens:1,
+                         identifier: tokens:3,
+                         body: body.ast },
+                  rest: body.rest,
+                  wellFormed: true }
+        else
+            if !checkFor(tokens:(2..(tokens.length-1)), ";") then
+                fail("Missing semicolon or newline in import")
+            else
+                let body = recur(tokens:(3..(tokens.length-1)))
+                if !body.wellFormed then fail(body.error) else
+                { ast: { type: "import",
+                         module: tokens:1,
+                         identifier: tokens:1,
+                         body: body.ast },
+                  rest: body.rest,
+                  wellFormed: true }
+    else
+        parse(opsByPrec, tokens)
+
+let convertImports = (tree :: Object) =>
+    if tree.type == "import" then
+        let body = recur(tree.body)
+        if !body.wellFormed then body else
+        { ast: { type: "assignment",
+                 identifier: tree.identifier,
+                 value: { type: "lookup",
+                          identifier: "module " + tree.module },
+                 body: body.ast },
+          modules: [tree.module] + body.modules,
+          wellFormed: true }
+    else
+        { ast: tree, modules: [], wellFormed: true }
+
+
+let loadAndParseFile = (filename :: [Int64]) =>
+    let tree = parseWithImports(tokenize(IO.read(filename)))
+    if !tree.wellFormed then tree else convertImports(tree.ast)
+
+
+let loadProgramAndImports = (module :: [Int64]) =>
+    let program = loadAndParseFile(module + ".vzp") /* TODO get filename from module name */
+    if !program.wellFormed then fail(program.error) else
+    let recFunc = recur
+    let f = (moduleName :: [Int64], loadedModules :: Object) =>
+        if utils.in(moduleName, 
+                    ((x :: Object) => x.name) $ loadedModules.modules) then
+            loadedModules
+        else
+            let recResult = recFunc(moduleName)
+            if !recResult.wellFormed then
+                recResult
+            else
+                { modules: recResult.modules + loadedModules.modules,
+                  wellFormed: true }
+
+    let results = (f @> program.modules { modules: [], wellFormed: true })
+    /*if !(&& @> (((x :: Object) => x.wellFormed) $ results) true) then*/
+    if !results.wellFormed then
+        results
+    else
+        { modules: results.modules + [{ name: module, value: program.ast }],
+          wellFormed: true }
+
+
+/* Set everything up in the proper let bindings */
+let generateFinalProgram = (modules :: [Object]) =>
+    if modules == [] then fail("No program!")
+    else if modules.length == 1 then
+        { ast: (modules:0).value, wellFormed: true }
+    else
+        let body = recur(modules:(1..(modules.length-1)))
+        if !body.wellFormed then body else
+        { ast: { type: "assignment",
+                 identifier: "module " + (modules:0).name,
+                 value: (modules:0).value,
+                 body: body.ast },
+          wellFormed: true }
+
+
 /* Export a nice function that the typechecker can call */
-(program_as_string :: [Int64]) => parse(opsByPrec, tokenize(program_as_string))
+(module :: [Int64]) =>
+    let modules = loadProgramAndImports(module)
+    if !modules.wellFormed then
+        let unused = print(modules.error)
+        { type: "number", value: 1 }
+    else
+        let finalProgram = generateFinalProgram(modules.modules)
+        if !finalProgram.wellFormed then
+            let unused = print(finalProgram.error)
+            { type: "number", value: 1 }
+        else
+            finalProgram.ast

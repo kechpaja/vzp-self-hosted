@@ -374,7 +374,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
               contents: newContents,
               ann: { category: "named", name: "Object" } }
     else
-        let asdf = ast.not_real.this_field_doesnt_exist
+        let asfd = print(ast)
         ast
 
 /* ==, !=, +, $, @>, <@, : are handled separately. Some are still present
@@ -411,16 +411,12 @@ let envWithBuiltins = [
 
 /* TODO remember error checking when we call this */
 let typecheck_main = (ast :: Object) =>
-    if !ast.wellFormed then 
-        { type: "array", 
-          contents: ((x :: Int64) => { type: "number", value: x }) $ "BAD AST" }
+    let tc = typecheck(ast, envWithBuiltins)
+    if tc.ann.category == "error" then
+        let unused = print("Error: " + tc.ann.name)
+        { type: "number", value: 1 }
     else
-        let tc = typecheck(ast.ast, envWithBuiltins)
-        if tc.ann.category == "error" then
-            let unused = print("Error: " + tc.ann.name)
-            { type: "number", value: 1 }
-        else
-            tc
+        tc
 
 /* Export a nice simple function */
 (program_as_string :: [Int64]) => typecheck_main(parse(program_as_string))

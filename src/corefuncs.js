@@ -282,7 +282,7 @@ function _print(closure, arg) {
         return arg; // TODO ???
     }
 
-    throw "print() requires an array of characters, but got '" + arg + "' instead.";
+    throw "print() requires an array of characters, but got '" + JSON.stringify(arg) + "' instead.";
 }
 
 
