@@ -6,9 +6,12 @@ import utils
  * Object probably also contains the count and closure ids.  
  */
 
-let builtins = [ "||", "&&", "==", "!=", ">", ">=", "<", "<=", "+", "-", "*",
-                 "/", "%", "$", "@>", "<@", ":", "..", "array+", "!", "unary -",
-                 "print", "short circuit&&", "short circuit||" ]
+/* XXX still missing a few things I'm not ready to put straight into JS */
+let binops = [ ">", ">=", "<", "<=", "-", "*", "/", "%", "array+" ]
+let unops = [ "!", "unary -" ]
+
+let builtins = [ "||", "&&", "==", "!=", "+", "$", "@>", "<@", "print", ":",
+                 "..", "short circuit&&", "short circuit||" ] + unops + binops
 
 let unique = (list :: [[Int64]]) =>
     if list.length == 0 then [] else
@@ -45,16 +48,34 @@ let defunc = (ast :: Object, env :: [[Int64]], count :: Int64) =>
           closure: results.closure,
           count: results.count }
     else if ast.type == "call" then
-        let func = recur(ast.func, env, count)
-        let args = listRec(ast.args, recur, env, func.count)
-        { ast: { type: "call",
-                 func: { type: "field_access",
-                         obj: func.ast,
-                         field: "()" },
-                 args: [func.ast] + args.asts },
-          funcs: func.funcs + args.funcs,
-          closure: func.closure + args.closure,
-          count: args.count }
+        let args = listRec(ast.args, recur, env, count)
+        if args.asts.length == 2 && ast.type == "lookup"
+                                 && utils.in(ast.identifier, binops) then
+            { ast: { type: "binop",
+                     operation: ast.identifier,
+                     left: args.asts:0,
+                     right: args.asts:1 },
+              funcs: args.funcs,
+              closure: args.closure,
+              count: args.count }
+        else if args.asts.length == 1 && ast.type == "lookup"
+                                      && utils.in(ast.identifier, unops) then
+            { ast: { type: "unop",
+                     operation: ast.identifier,
+                     arg: args.asts:0 },
+              funcs: args.funcs,
+              closure: args.closure,
+              count: args.count }
+        else
+            let func = recur(ast.func, env, args.count)
+            { ast: { type: "call",
+                     func: { type: "field_access",
+                             obj: func.ast,
+                             field: "()" },
+                     args: [func.ast] + args.asts },
+              funcs: func.funcs + args.funcs,
+              closure: func.closure + args.closure,
+              count: func.count }
     else if ast.type == "field_access" then
         let obj = recur(ast.obj, env, count)
         { ast: { type: "field_access",

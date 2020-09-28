@@ -1,7 +1,16 @@
 NODEJS 		= node
 RUN			= ./run.sh
 
-default: dev
+default: prod
+
+prod: staging
+	@if [[ "$$USING_VERSION" == "" ]]; then \
+		USING_VERSION="`ls versions/ | sort -V | tail -n 1`"; \
+	fi; \
+	$(RUN) "$$USING_VERSION" src/main > versions/00-testing/vzp.unpacked.js; \
+	npx webpack -o versions/00-testing/vzp.js --target=node --mode=production --silent versions/00-testing/vzp.unpacked.js; \
+	cp src/*.js versions/00-testing/; \
+	$(RM) -rf versions/00-testing/staging versions/00-testing/vzp.unpacked.js
 
 dev: staging
 	@if [[ "$$USING_VERSION" == "" ]]; then \
@@ -9,13 +18,6 @@ dev: staging
 	fi; \
 	$(RUN) "$$USING_VERSION" src/main > versions/00-testing/vzp.js; \
 	cp src/*.js versions/00-testing/;
-
-# TODO stuff that could go in a prod recipe
-#TMP_STAGING_DIR="`mktemp -d`"; \
-#npx webpack -o versions/00-testing/staging/vzp.js --target=node --mode=production --silent "$$TMP_STAGING_DIR/main.js"; \
-#$(RM) -rf versions/00-testing/staging \
-#$(RM) -rf "$$TMP_STAGING_DIR"
-
 
 staging: src/*.vzp src/corefuncs.js
 	@if [[ "$$USING_VERSION" == "" ]]; then \

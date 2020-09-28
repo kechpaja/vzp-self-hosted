@@ -16,6 +16,15 @@ let compile_body_js = (ast :: Object, isBound :: Boolean) =>
     /* Main block */
     if ast.type == "array" then
         wrap("[" + utils.join(recTrue $ ast.contents) + "]")
+    else if ast.type == "binop" then
+        if ast.operation == "array+" then
+            wrap(recTrue(ast.left) + ".concat(" + recTrue(ast.right) + ")")
+        else if ast.operation == "/" then
+            wrap("Math.floor(" + recTrue(ast.left) + "/" 
+                               + recTrue(ast.right) + ")")
+        else
+            wrap("(" + recTrue(ast.left) + ast.operation 
+                                         + recTrue(ast.right) + ")")
     else if ast.type == "call" then
         wrap(recTrue(ast.func) + "(" + utils.join(recTrue $ ast.args) + ")")
     else if ast.type == "field_access" then
@@ -37,6 +46,9 @@ let compile_body_js = (ast :: Object, isBound :: Boolean) =>
         let f = (elem :: Object) => 
             escape(elem.identifier) + ":" + recTrue(elem.value)
         wrap("{" + utils.join(f $ ast.contents) + "}")
+    else if ast.type == "unop" then
+        if ast.operation == "unary -" then wrap("(-(" + recTrue(ast.arg) + "))")
+        else wrap("(" + ast.operation + "(" + recTrue(ast.arg) + "))")
     else
         "UNKNOWN" + ast.type
 

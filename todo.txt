@@ -47,20 +47,6 @@ position.
 
 For defunc: consider not putting references to builtin functions into closure.
 
-We also need to change the builtins so that they can be called in the familiar
-fashion (or not). Alternatively, we can have a second env keeping track of
-which functions close over variables or not. The latter is probably the best
-choice, especially as it will allow for more optimization when we target LLVM.
-
-Okay, so the additional layer of typing (determine whether we need to pass a
-closure for a particular function or not) is the eventual goal, but for now it
-requires a lot of steps that I'm not ready to do yet. For now, then, we are
-going to create a primitive closure whenever a builtin is looked up, and then
-we're going to change it later when we have a smarter system for handling
-imports. 
-
-
-
 
 Maybe eventually complain if there are unreachable tokens in the file?
 
