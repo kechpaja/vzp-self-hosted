@@ -102,15 +102,6 @@ function __43_(closure, left, right) {
     throw "+ requires two numbers or arrays; got '" + left + "' and '" + JSON.stringify(right) + "' instead";
 }
 
-/* array+ */
-function _array_43_(closure, left, right) {
-    if (Array.isArray(left) && Array.isArray(right)) {
-        return left.concat(right);
-    }
-
-    throw "array+ requires two arrays; got '" + JSON.stringify(left) + "' and '" + JSON.stringify(right) + "' instead";
-}
-
 /* $ */
 function __36_(closure, left, right) {
     if (typeof left === "object" && typeof left.__40__41_ === "function" && Array.isArray(right)) {
