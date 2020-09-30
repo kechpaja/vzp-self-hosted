@@ -4,19 +4,13 @@ RUN			= ./run.sh
 default: prod
 
 prod: staging
-	@if [[ "$$USING_VERSION" == "" ]]; then \
-		USING_VERSION="`ls versions/ | sort -V | tail -n 1`"; \
-	fi; \
-	$(RUN) "$$USING_VERSION" src/main > versions/00-testing/vzp.unpacked.js; \
+	@$(RUN) 00-testing/staging src/main > versions/00-testing/vzp.unpacked.js; \
 	npx webpack -o versions/00-testing/vzp.js --target=node --mode=production --silent versions/00-testing/vzp.unpacked.js; \
 	cp src/*.js versions/00-testing/; \
 	$(RM) -rf versions/00-testing/staging versions/00-testing/vzp.unpacked.js
 
 dev: staging
-	@if [[ "$$USING_VERSION" == "" ]]; then \
-		USING_VERSION="`ls versions/ | sort -V | tail -n 1`"; \
-	fi; \
-	$(RUN) "$$USING_VERSION" src/main > versions/00-testing/vzp.js; \
+	@$(RUN) 00-testing/staging src/main > versions/00-testing/vzp.js; \
 	cp src/*.js versions/00-testing/;
 
 staging: src/*.vzp src/corefuncs.js
