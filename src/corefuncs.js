@@ -14,19 +14,6 @@ function __124__124_(closure, left, right) {
     throw "|| requires two booleans; got '" + left + "' and '" + right + "' instead";
 }
 
-/* 
- * Short-Circuiting || 
- * The parser will replace the arguments with functions that take no
- * arguments, allowing their evaluation to be deferred.
- */
-function _short_32_circuit_124__124_(closure, left, right) {
-    if (typeof left === "object" && typeof right === "object") {
-        return left.__40__41_(left) || right.__40__41_(right);
-    }
-
-    throw "You shouldn't see this error.";
-}
-
 /* && */
 function __38__38_(closure, left, right) {
     if (typeof left === "boolean" && typeof right === "boolean") {
@@ -34,15 +21,6 @@ function __38__38_(closure, left, right) {
     }
 
     throw "&& requires two booleans; got '" + left + "' and '" + right + "' instead";
-}
-
-/* Short-Circuiting && (see above under "Short-Circuiting ||") */
-function _short_32_circuit_38__38_(closure, left, right) {
-    if (typeof left === "object" && typeof right === "object") {
-        return left.__40__41_(left) && right.__40__41_(right);
-    }
-
-    throw "You shouldn't see this error.";
 }
 
 /* == */

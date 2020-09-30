@@ -11,7 +11,7 @@ let binops = [ ">", ">=", "<", "<=", "-", "*", "/", "%", "array+" ]
 let unops = [ "!", "unary -" ]
 
 let corefuncs = [ "||", "&&", "==", "!=", "+", "$", "@>", "<@", "print", ":",
-                  "..", "short circuit&&", "short circuit||" ]
+                  ".." ]
 let builtins = corefuncs + unops + binops
 
 let unique = (list :: [[Int64]]) =>

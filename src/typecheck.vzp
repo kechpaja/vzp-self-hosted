@@ -380,10 +380,6 @@ let typecheck = (ast :: Object, env :: [Object]) =>
 let envWithBuiltins = [
     { id: "||", t: function([boolean, boolean], boolean) },
     { id: "&&", t: function([boolean, boolean], boolean) },
-    { id: "short circuit||", t: function([function([], boolean), 
-                                          function([], boolean)], boolean) },
-    { id: "short circuit&&", t: function([function([], boolean), 
-                                          function([], boolean)], boolean) },
     { id: ">", t: function([int64, int64], boolean) },
     { id: ">=", t: function([int64, int64], boolean) },
     { id: "<", t: function([int64, int64], boolean) },
