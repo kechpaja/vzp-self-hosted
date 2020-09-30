@@ -5,7 +5,7 @@ let restOf = (x :: [Object]) => if x.length <= 1 then [] else x:1..(x.length-1)
 
 /* Run through AST and add something to IDs to make them unique */
 let uniqueIds = (astOuter :: Object) =>
-    ((ast :: Object, env :: [Object], prefix :: [Int64]) =>
+    ((ast :: Object, env :: [Object], count :: Int64) =>
         let replaceIfInEnv = (id :: [Int64], e :: [Object]) =>
             if e == [] then id else 
             if (e:0).orig == id then (e:0).new else recur(id, restOf(e))
@@ -13,57 +13,73 @@ let uniqueIds = (astOuter :: Object) =>
             [{ orig: orig, new: new }] + e
 
         let recFunc = recur
-        let argRec = (args :: [Object]) =>
-            if args.length == 0 then [] else
-            ((x :: Int64) => 
-                recFunc(args:(x-1),
-                        env,
-                        prefix + utils.itoa(x) + ".")) $ 1..args.length
+        let argRec = (args :: [Object], c :: Int64) =>
+            let f = (x :: Object, saved :: Object) =>
+                let arg = recFunc(x, env, saved.count)
+                { ast: [arg.ast] + saved.ast, count: arg.count }
+            f @> args { ast: [], count: c }
 
         if ast.type == "array" then
-            { type: "array",
-              contents: argRec(ast.contents) }
+            let contents = argRec(ast.contents, count)
+            { ast: { type: "array",
+                     contents: contents.ast },
+              count: contents.count }
         else if ast.type == "assignment" then
-            let newId = prefix + ast.identifier
-            { type: "assignment",
-              identifier: newId,
-              value: recur(ast.value, env, prefix + "0."),
-              body: recur(ast.body,
-                          appendToEnv(ast.identifier, newId, env),
-                          prefix + "1.") }
+            let value = recur(ast.value, env, count + 1)
+            let body = recur(ast.body,
+                             appendToEnv(ast.identifier,
+                                         "i" + utils.itoa(count),
+                                         env),
+                             value.count)
+            { ast: { type: "assignment",
+                     identifier: "i" + utils.itoa(count),
+                     value: value.ast,
+                     body: body.ast },
+              count: body.count }
         else if ast.type == "call" then
-            { type: "call",
-              func: recur(ast.func, env, prefix + "0."),
-              args: argRec(ast.args) }
+            let func = recur(ast.func, env, count)
+            let args = argRec(ast.args, func.count)
+            { ast: { type: "call",
+                     func: func.ast,
+                     args: args.ast },
+              count: args.count }
         else if ast.type == "conditional" then
-            { type: "conditional",
-              cond: recur(ast.cond, env, prefix + "0."),
-              thn: recur(ast.thn, env, prefix + "1."),
-              els: recur(ast.els, env, prefix + "2.") }
+            let cond = recur(ast.cond, env, count)
+            let thn = recur(ast.thn, env, cond.count)
+            let els = recur(ast.els, env, thn.count)
+            { ast: { type: "conditional",
+                     cond: cond.ast,
+                     thn: thn.ast,
+                     els: els.ast },
+              count: els.count }
         else if ast.type == "field_access" then
-            { type: "field_access",
-              obj: recur(ast.obj, env, prefix + "0."),
-              field: ast.field }
+            let obj = recur(ast.obj, env, count)
+            { ast: { type: "field_access",
+                     obj: obj.ast,
+                     field: ast.field },
+              count: obj.count }
         else if ast.type == "lambda" then
-            { type: "lambda",
-              params: ast.params, /* TODO Replace these? */
-              body: recur(ast.body, env, prefix + "0.") }
+            let body = recur(ast.body, env, count)
+            { ast: { type: "lambda",
+                     params: ast.params, /* XXX Replace these? */
+                     body: body.ast },
+              count: body.count }
         else if ast.type == "lookup" then
-            { type: "lookup",
-              identifier: replaceIfInEnv(ast.identifier, env) }
+            { ast: { type: "lookup",
+                     identifier: replaceIfInEnv(ast.identifier, env) },
+              count: count }
         else if ast.type == "object" then
-            let f = (contents :: [Object]) =>
-                if contents.length == 0 then [] else
-                let nums = 1..contents.length
-                ((x :: Int64) => 
-                    { identifier: (contents:(x-1)).identifier,
-                      value: recFunc((contents:(x-1)).value,
-                                     env,
-                                     prefix + utils.itoa(x) + ".") }) $ nums 
-            { type: "object",
-              contents: f(ast.contents) }
+            let f = (pair :: Object, saved :: Object) =>
+                let newValue = recFunc(pair.value, env, saved.count)
+                let newPair = { identifier: pair.identifier,
+                                value: newValue.ast }
+                { ast: [newPair] + saved.ast, count: newValue.count }
+
+            let contents = f @> ast.contents { ast: [], count: count }
+            { ast: { type: "object", contents: contents.ast },
+              count: contents.count }
         else
-            ast)(astOuter, [], ".")
+            { ast: ast, count: count })(astOuter, [], 0).ast
 
 let transform_main = (ast :: Object) =>
     let anyAssnOrCondIn = (array :: [Object]) =>
@@ -104,7 +120,6 @@ let transform_main = (ast :: Object) =>
             { type: "array", contents: recur $ ast.contents }
     else if ast.type == "assignment" then
         if ast.value.type == "assignment" then
-            let innerAssn = uniqueIds(ast.value)
             recur({ type: "assignment",
                     identifier: ast.value.identifier,
                     value: ast.value.value,
