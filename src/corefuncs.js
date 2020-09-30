@@ -140,7 +140,11 @@ function __43_(closure, left, right) {
 
 /* array+ */
 function _array_43_(closure, left, right) {
-    return left.concat(right);
+    if (Array.isArray(left) && Array.isArray(right)) {
+        return left.concat(right);
+    }
+
+    throw "array+ requires two arrays; got '" + JSON.stringify(left) + "' and '" + JSON.stringify(right) + "' instead";
 }
 
 /* - */
