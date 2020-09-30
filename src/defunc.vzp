@@ -221,5 +221,6 @@ let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
                               identifier: "x 1" },
                       right: { type: "lookup",
                                identifier: "x 2" } } }
-    { ast: addLets @> firstStep.builtins firstStep.ast,
-      funcs: (generateFuncs $ firstStep.builtins) + firstStep.funcs }
+    let liftedBuiltins = unique(firstStep.builtins)
+    { ast: addLets @> liftedBuiltins firstStep.ast,
+      funcs: (generateFuncs $ liftedBuiltins) + firstStep.funcs }
