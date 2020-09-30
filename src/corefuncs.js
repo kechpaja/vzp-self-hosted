@@ -89,42 +89,6 @@ function __33__61_(closure, left, right) {
     return !__61__61_(closure, left, right);
 }
 
-/* < */
-function __60_(closure, left, right) {
-    if (typeof left === "number" && typeof right === "number") {
-        return left < right;
-    }
-
-    throw "< expects two numbers; got '" + left + "' and '" + right + "' instead";
-}
-
-/* <= */
-function __60__61_(closure, left, right) {
-    if (typeof left === "number" && typeof right === "number") {
-        return left <= right;
-    }
-
-    throw "<= expects two numbers; got '" + left + "' and '" + right + "' instead";
-}
-
-/* > */
-function __62_(closure, left, right) {
-    if (typeof left === "number" && typeof right === "number") {
-        return left > right;
-    }
-
-    throw "> expects two numbers; got '" + left + "' and '" + right + "' instead";
-}
-
-/* >= */
-function __62__61_(closure, left, right) {
-    if (typeof left === "number" && typeof right === "number") {
-        return left >= right;
-    }
-
-    throw ">= expects two numbers; got '" + left + "' and '" + right + "' instead";
-}
-
 /* + */
 function __43_(closure, left, right) {
     if (typeof left === "number" && typeof right === "number") {
@@ -145,42 +109,6 @@ function _array_43_(closure, left, right) {
     }
 
     throw "array+ requires two arrays; got '" + JSON.stringify(left) + "' and '" + JSON.stringify(right) + "' instead";
-}
-
-/* - */
-function __45_(closure, left, right) {
-    if (typeof left === "number" && typeof right === "number") {
-        return left - right;
-    }
-
-    throw "- expects two numbers; got '" + left + "' and '" + right + "' instead";
-}
-
-/* * */
-function __42_(closure, left, right) {
-    if (typeof left === "number" && typeof right === "number") {
-        return left * right;
-    }
-
-    throw "* expects two numbers; got '" + left + "' and '" + right + "' instead";
-}
-
-/* / */
-function __47_(closure, left, right) {
-    if (typeof left === "number" && typeof right === "number") {
-        return Math.floor(left / right);
-    }
-
-    throw "/ expects two numbers; got '" + left + "' and '" + right + "' instead";
-}
-
-/* % */
-function __37_(closure, left, right) {
-    if (typeof left === "number" && typeof right === "number") {
-        return left % right;
-    }
-
-    throw "% expects two numbers; got '" + left + "' and '" + right + "' instead";
 }
 
 /* $ */
@@ -259,24 +187,6 @@ function __46__46_(closure, left, right) {
     }
 
     throw ".. requires two numbers; got '" + left + "' and '" + right + "' instead";
-}
-
-/* ! */
-function __33_(closure, arg) {
-    if (typeof arg === "boolean") {
-        return !arg;
-    }
-
-    throw "! requires a boolean, but got '" + arg + "' instead.";
-}
-
-/* unary - */
-function _unary_32__45_(closure, arg) {
-    if (typeof arg === "number") {
-        return -arg;
-    }
-
-    throw "Unary - requires a number, but got'" + arg + "' instead.";
 }
 
 /* print() */

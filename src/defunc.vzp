@@ -7,11 +7,12 @@ import utils
  */
 
 /* XXX still missing a few things I'm not ready to put straight into JS */
-let binops = [ ">", ">=", "<", "<=", "-", "*", "/", "%", "array+" ]
+let binops = [ ">", ">=", "<", "<=", "-", "*", "/", "%" ]
 let unops = [ "!", "unary -" ]
 
-let builtins = [ "||", "&&", "==", "!=", "+", "$", "@>", "<@", "print", ":",
-                 "..", "short circuit&&", "short circuit||" ] + unops + binops
+let corefuncs = [ "||", "&&", "==", "!=", "+", "$", "@>", "<@", "print", ":",
+                  "..", "short circuit&&", "short circuit||", "array+" ]
+let builtins = corefuncs + unops + binops
 
 let unique = (list :: [[Int64]]) =>
     if list.length == 0 then [] else
@@ -34,37 +35,42 @@ let listRec = (list :: [Object],
         { asts: [handled.ast] + saved.asts,
           funcs: handled.funcs + saved.funcs,
           closure: handled.closure + saved.closure,
+          builtins: handled.builtins + saved.builtins,
           count: handled.count }) @> list { asts: [],
                                             funcs: [],
                                             closure: [],
+                                            builtins: [],
                                             count: count }
 
-let defunc = (ast :: Object, env :: [[Int64]], count :: Int64) =>
+let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
     if ast.type == "array" then
         let results = listRec(ast.contents, recur, env, count)
         { ast: { type: "array",
                  contents: results.asts },
           funcs: results.funcs,
           closure: results.closure,
+          builtins: results.builtins,
           count: results.count }
     else if ast.type == "call" then
         let args = listRec(ast.args, recur, env, count)
-        if args.asts.length == 2 && ast.type == "lookup"
-                                 && utils.in(ast.identifier, binops) then
+        if args.asts.length == 2 && ast.func.type == "lookup"
+                                 && utils.in(ast.func.identifier, binops) then
             { ast: { type: "binop",
-                     operation: ast.identifier,
+                     operation: ast.func.identifier,
                      left: args.asts:0,
                      right: args.asts:1 },
               funcs: args.funcs,
               closure: args.closure,
+              builtins: args.builtins,
               count: args.count }
-        else if args.asts.length == 1 && ast.type == "lookup"
-                                      && utils.in(ast.identifier, unops) then
+        else if args.asts.length == 1 && ast.func.type == "lookup"
+                                    && utils.in(ast.func.identifier, unops) then
             { ast: { type: "unop",
-                     operation: ast.identifier,
+                     operation: ast.func.identifier,
                      arg: args.asts:0 },
               funcs: args.funcs,
               closure: args.closure,
+              builtins: args.builtins,
               count: args.count }
         else
             let func = recur(ast.func, env, args.count)
@@ -75,6 +81,7 @@ let defunc = (ast :: Object, env :: [[Int64]], count :: Int64) =>
                      args: [func.ast] + args.asts },
               funcs: func.funcs + args.funcs,
               closure: func.closure + args.closure,
+              builtins: func.builtins + args.builtins,
               count: func.count }
     else if ast.type == "field_access" then
         let obj = recur(ast.obj, env, count)
@@ -83,6 +90,7 @@ let defunc = (ast :: Object, env :: [[Int64]], count :: Int64) =>
                  field: ast.field },
           funcs: obj.funcs,
           closure: obj.closure,
+          builtins: obj.builtins,
           count: obj.count }
     else if ast.type == "js-assignment" then
         let value = recur(ast.value, env, count)
@@ -93,6 +101,7 @@ let defunc = (ast :: Object, env :: [[Int64]], count :: Int64) =>
                  body: body.ast },
           funcs: value.funcs + body.funcs,
           closure: value.closure + body.closure,
+          builtins: value.builtins + body.builtins,
           count: body.count }
     else if ast.type == "js-conditional" then
         let cond = recur(ast.cond, env, count)
@@ -104,6 +113,7 @@ let defunc = (ast :: Object, env :: [[Int64]], count :: Int64) =>
                  els: els.ast },
           funcs: cond.funcs + thn.funcs + els.funcs,
           closure: cond.closure + thn.closure + els.closure,
+          builtins: cond.builtins + thn.builtins + els.builtins,
           count: els.count }
     else if ast.type == "lambda" then
         let body = recur(ast.body, ast.params, count + 1)
@@ -135,6 +145,7 @@ let defunc = (ast :: Object, env :: [[Int64]], count :: Int64) =>
           closure: ((x :: [Int64], list :: [[Int64]]) =>
                         if utils.in(x, env) then list 
                                             else [x] + list) @> closureIds [],
+          builtins: body.builtins,
           count: body.count }
     else if ast.type == "object" then
         let values = listRec(((x :: Object) => x.value) $ ast.contents,
@@ -148,26 +159,67 @@ let defunc = (ast :: Object, env :: [[Int64]], count :: Int64) =>
                  contents: contents },
           funcs: values.funcs,
           closure: values.closure,
+          builtins: values.builtins,
           count: values.count }
     else if ast.type == "lookup" then
-        if utils.in(ast.identifier, builtins) then
+        if utils.in(ast.identifier, corefuncs) then
             /* Don't need to close over builtins, as they are defined globally.
              * We do need to create primitive closures for them so that they 
-             can be passed intuitively though.*/
+             * can be passed intuitively though.*/
             { ast: { type: "object",
                      contents: [{ identifier: "()",
                                   value: { type: "lookup",
                                            identifier: ast.identifier } }] },
               funcs: [],
               closure: [],
+              builtins: [],
+              count: count }
+        else if utils.in(ast.identifier, unops + binops) then
+            /* These builtins can be generated */
+            { ast: ast,
+              funcs: [],
+              closure: [],
+              builtins: [ ast.identifier ],
               count: count }
         else if !utils.in(ast.identifier, env) then
-            { ast: ast, funcs: [], closure: [ast.identifier], count: count }
+            { ast: ast,
+              funcs: [],
+              closure: [ast.identifier],
+              builtins: [],
+              count: count }
         else
-            { ast: ast, funcs: [], closure: [], count: count }
+            { ast: ast, funcs: [], closure: [], builtins: [], count: count }
     else
         /* No other cases can contain functions */
-        { ast: ast, funcs: [], closure: [], count: count }
+        { ast: ast, funcs: [], closure: [], builtins: [], count: count }
 
 
-(program_as_string :: [Int64]) => defunc(transform(program_as_string), [], 0)
+(program_as_string :: [Int64]) =>
+    let firstStep = defunc_main(transform(program_as_string), [], 0)
+    let addLets = (operation :: [Int64], ast :: Object) => 
+        { type: "assignment",
+          identifier: operation,
+          value: { type: "object",
+                   contents: [{ identifier: "()",
+                                value: { type: "lookup",
+                                         identifier: "()" + operation } }] },
+          body: ast }
+    let generateFuncs = (operation :: [Int64]) =>
+        if utils.in(operation, unops) then
+            { name: "()" + operation,
+              params: [ "()", "x 1" ],
+              body: { type: "unop",
+                      operation: operation,
+                      arg: { type: "lookup",
+                             identifier: "x 1" } } }
+        else
+            { name: "()" + operation,
+              params: [ "()", "x 1", "x 2" ],
+              body: { type: "binop",
+                      operation: operation,
+                      left: { type: "lookup",
+                              identifier: "x 1" },
+                      right: { type: "lookup",
+                               identifier: "x 2" } } }
+    { ast: addLets @> firstStep.builtins firstStep.ast,
+      funcs: (generateFuncs $ firstStep.builtins) + firstStep.funcs }
