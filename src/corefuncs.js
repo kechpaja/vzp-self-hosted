@@ -64,39 +64,27 @@ function __43_(closure, left, right) {
 
 /* $ */
 function __36_(closure, left, right) {
-    if (typeof left === "object" && typeof left._f === "function" && Array.isArray(right)) {
-        return right.map(function (x) { return left._f(left, x); });
-    }
-
-    throw "$ expects a function and an array; got '" + JSON.stringify(left) + "' and '" + right + "' instead";
+    return right.map(x => left._f(left, x));
 }
 
 /* @> */
 function __64__62_(closure, one, two, three) {
-    if (typeof one === "object" && typeof one._f === "function" && Array.isArray(two)) {
-        let acc = three;
-        two.concat([]).reverse().forEach(function (x) {
-            acc = one._f(one, x, acc);
-        });
+    let acc = three;
+    two.concat([]).reverse().forEach(function (x) {
+        acc = one._f(one, x, acc);
+    });
 
-        return acc;
-    }
-
-    throw "Type issue in fold right";
+    return acc;
 }
 
 /* <@ */
 function __60__64_(closure, one, two, three) {
-    if (typeof one === "object" && typeof one._f === "function" && Array.isArray(three)) {
-        let acc = two;
-        three.forEach(function (x) {
-            acc = one._f(one, acc, x);
-        });
+    let acc = two;
+    three.forEach(function (x) {
+        acc = one._f(one, acc, x);
+    });
 
-        return acc;
-    }
-
-    throw "Type issue in fold left";
+    return acc;
 }
 
 /* : */
@@ -116,38 +104,30 @@ function __58_(closure, left, right) {
 
 /* .. */
 function __46__46_(closure, left, right) {
-    if (typeof left === "number" && typeof right === "number") {
-        let num = left;
-        let array = [];
+    let num = left;
+    let array = [];
 
-        if (left < right) {
-            while (num <= right) {
-                array.push(num);
-                num += 1;
-            }
-        } else if (left > right) {
-            while (num >= right) {
-                array.push(num);
-                num -= 1;
-            }
-        } else {
+    if (left < right) {
+        while (num <= right) {
             array.push(num);
+            num += 1;
         }
-
-        return array;
+    } else if (left > right) {
+        while (num >= right) {
+            array.push(num);
+            num -= 1;
+        }
+    } else {
+        array.push(num);
     }
 
-    throw ".. requires two numbers; got '" + left + "' and '" + right + "' instead";
+    return array;
 }
 
 /* print() */
 function _print(closure, arg) {
-    if (Array.isArray(arg)) { // TODO check that it's an array of numbers
-        console.log(String.fromCodePoint.apply(this, arg));
-        return arg; // TODO ???
-    }
-
-    throw "print() requires an array of characters, but got '" + JSON.stringify(arg) + "' instead.";
+    console.log(String.fromCodePoint.apply(this, arg));
+    return arg; // TODO ???
 }
 
 
