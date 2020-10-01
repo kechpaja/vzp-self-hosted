@@ -81,182 +81,57 @@ let uniqueIds = (astOuter :: Object) =>
         else
             { ast: ast, count: count })(astOuter, [], 0).ast
 
-let transform_main = (ast :: Object) =>
-    let anyAssnOrCondIn = (array :: [Object]) =>
-        || @> (((x :: Object) => x.type == "assignment" 
-                              || x.type == "conditional") $ array) false
-
-    let argRec = (origArgs :: [Object],
-                  newArgs :: [Object],
-                  bottomFunc :: ([Object]) Object) =>
-        if origArgs.length == 0 then
-            bottomFunc(newArgs)
-        else if (origArgs:0).type == "assignment" then
-            { type: "assignment",
-              identifier: (origArgs:0).identifier,
-              value: (origArgs:0).value,
-              body: recur(restOf(origArgs),
-                          newArgs + [(origArgs:0).body],
-                          bottomFunc) }
-        else if (origArgs:0).type == "conditional" then
-            { type: "conditional",
-              cond: (origArgs:0).cond,
-              thn: recur(restOf(origArgs),
-                         newArgs + [(origArgs:0).thn],
-                         bottomFunc),
-              els: recur(restOf(origArgs),
-                         newArgs + [(origArgs:0).els],
-                         bottomFunc) }
-        else
-            recur(restOf(origArgs), newArgs + [origArgs:0], bottomFunc)
+let transform_main = (ast :: Object, binder :: (Object) Object) =>
+    let recFunc = recur
+    let doList = (f :: (Object, (Object) Object) Object,
+                  list :: [Object],
+                  new :: [Object],
+                  b :: ([Object]) Object) =>
+        if list == [] then b(new) else
+        let innerRec = recur
+        f(list:0, (x :: Object) => innerRec(f, restOf(list), new + [x], b))
 
     if ast.type == "array" then
-        if anyAssnOrCondIn(ast.contents) then
-            recur(argRec(ast.contents, 
-                         [],
-                         (contents :: [Object]) => { type: "array",
-                                                     contents: contents}))
-        else
-            { type: "array", contents: recur $ ast.contents }
+        doList(recur, ast.contents, [], (x :: [Object]) => binder({ type: "array",
+                                                             contents: x }))
     else if ast.type == "assignment" then
-        if ast.value.type == "assignment" then
-            recur({ type: "assignment",
-                    identifier: ast.value.identifier,
-                    value: ast.value.value,
-                    body: { type: "assignment",
-                            identifier: ast.identifier,
-                            value: ast.value.body,
-                            body: ast.body } })
-        else if ast.value.type == "conditional" then
-            recur({ type: "conditional",
-                    cond: ast.value.cond,
-                    thn: { type: "assignment",
-                           identifier: ast.identifier,
-                           value: ast.value.thn,
-                           body: ast.body },
-                    els: { type: "assignment",
-                           identifier: ast.identifier,
-                           value: ast.value.els,
-                           body: ast.body } })
-        else if ast.value.type == "call" && anyAssnOrCondIn(ast.value.args) then
-            recur({ type: "assignment",
-                    identifier: ast.identifier,
-                    value: argRec(ast.value.args, 
-                                  [], 
-                                  (args :: [Object]) => { type: "call",
-                                                          func: ast.value.func,
-                                                          args: args }),
-                    body: ast.body })
-        else
-            { type: "js-assignment",
-              identifier: ast.identifier,
-              value: recur(ast.value),
-              body: recur(ast.body) }
+        let body = recur(ast.body, binder)
+        recur(ast.value, (x :: Object) => { type: "js-assignment", 
+                                            identifier: ast.identifier,
+                                            value: x,
+                                            body: body })
     else if ast.type == "call" then
-        if ast.func.type == "assignment" then
-            recur({ type: "assignment",
-                    identifier: ast.func.identifier,
-                    value: ast.func.value,
-                    body: { type: "call",
-                            func: ast.func.body,
-                            args: ast.args } })
-        else if ast.func.type == "conditional" then
-            recur({ type: "conditional",
-                    cond: ast.func.cond,
-                    thn: { type: "call",
-                           func: ast.func.thn,
-                           args: ast.args },
-                    els: { type: "call",
-                           func: ast.func.els,
-                           args: ast.args } })
-        else if anyAssnOrCondIn(ast.args) then
-            /* TODO This isn't good enough; got js-conditional in output */
-            /* TODO Need to handle case where stuff gets lifted out when the
-             * call is in a lettable position. */
-            recur(argRec(ast.args, [], (args :: [Object]) => { type: "call",
-                                                               func: ast.func,
-                                                               args: args }))
-        else
-            { type: "call",
-              func: recur(ast.func),
-              args: recur $ ast.args }
+        recur(ast.func, 
+              (func :: Object) => doList(recFunc,
+                                         ast.args,
+                                         [],
+                                         (args :: [Object]) => binder({ type: "call",
+                                                                 func: func,
+                                                                 args: args })))
     else if ast.type == "conditional" then
-        if ast.cond.type == "assignment" then
-            recur({ type: "assignment",
-                    identifier: ast.cond.identifier,
-                    value: ast.cond.value,
-                    body: { type: "conditional",
-                            cond: ast.cond.body,
-                            thn: ast.thn,
-                            els: ast.els } })
-        else if ast.cond.type == "conditional" then
-            recur({ type: "conditional",
-                    cond: ast.cond.cond,
-                    thn: { type: "conditional",
-                           cond: ast.cond.thn,
-                           thn: ast.thn,
-                           els: ast.els },
-                    els: { type: "conditional",
-                           cond: ast.cond.els,
-                           thn: ast.thn,
-                           els: ast.els } })
-        else if ast.cond.type == "call" && anyAssnOrCondIn(ast.cond.args) then
-            recur({ type: "conditional",
-                    cond: argRec(ast.cond.args, 
-                                 [],
-                                 (args :: [Object]) => { type: "call",
-                                                         func: ast.cond.func,
-                                                         args: args }),
-                    thn: ast.thn,
-                    els: ast.els })
-        else
-            { type: "js-conditional",
-              cond: recur(ast.cond),
-              thn: recur(ast.thn),
-              els: recur(ast.els) }
+        let thn = recur(ast.thn, binder)
+        let els = recur(ast.els, binder)
+        recur(ast.cond, (x :: Object) => { type: "js-conditional",
+                                           cond: x,
+                                           thn: thn,
+                                           els: els })
     else if ast.type == "field_access" then
-        if ast.obj.type == "assignment" then
-            recur({ type: "assignment",
-                    identifier: ast.obj.identifier,
-                    value: ast.obj.value,
-                    body: { type: "field_access",
-                            obj: ast.obj.body,
-                            field: ast.field } })
-        else if ast.obj.type == "conditional" then
-            recur({ type: "conditional",
-                    cond: ast.obj.cond,
-                    thn: { type: "field_access",
-                           obj: ast.obj.thn,
-                           field: ast.field },
-                    els: { type: "field_access",
-                           obj: ast.obj.els,
-                           field: ast.field } })
-        else
-            { type: "field_access",
-              obj: recur(ast.obj),
-              field: ast.field }
+        recur(ast.obj, (x :: Object) => binder({ type: "field_access", 
+                                          obj: x,
+                                          field: ast.field }))
     else if ast.type == "lambda" then
-        { type: "lambda",
-          params: ast.params,
-          body: recur(ast.body) }
+        binder({ type: "lambda", 
+                 params: ast.params,
+                 body: recur(ast.body, (x :: Object) => x) })
     else if ast.type == "object" then
-        let values = ((x :: Object) => x.value) $ ast.contents
-        if anyAssnOrCondIn(values) then
-            let fields = ((x :: Object) => x.identifier) $ ast.contents
-            recur(argRec(values, [], (values :: [Object]) => { 
-                type: "object",
-                contents: ((x :: Int64) => 
-                               { identifier: fields:x,
-                                 value: values:x }) $ 0..(fields.length-1)
-            }))
-        else
-            let f = (let recFunc = recur; (x :: Object) => 
-                                                 { identifier: x.identifier,
-                                                   value: recFunc(x.value) })
-            { type: "object",
-              contents: (f $ ast.contents) }
+        let f = (pair :: Object, b :: (Object) Object) =>
+            recFunc(pair.value, 
+                    (x :: Object) => b({ identifier: pair.identifier,
+                                         value: x }))
+        doList(f, ast.contents, [], (x :: Object) => binder({ type: "object",
+                                                              contents: x }))
     else
-        ast
+        binder(ast)
 
 (program_as_string :: [Int64]) =>
-    transform_main(uniqueIds(typecheck(program_as_string)))
+    transform_main(uniqueIds(typecheck(program_as_string)), (x :: Object) => x)

@@ -1,0 +1,2 @@
+let f = let x = 9; (y :: Int64) => x + y
+print(if f(8) == 17 then "good" else "bad")

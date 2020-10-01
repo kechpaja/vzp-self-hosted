@@ -47,6 +47,15 @@ position.
 
 For defunc: consider not putting references to builtin functions into closure.
 
+For transform, consider not duplicating code in conditionals, as it can make
+the program grow immensely. 
+
+In general, we also have to think about whether we need short circuiting at
+all. The answer is probably no, but the current parser depends on short
+circuiting, so I can't take it out until later. I'm currently leaning towards
+saying that whether booleans operators short circuit is not defined and should
+not be counted on for control flow. 
+
 
 Maybe eventually complain if there are unreachable tokens in the file?
 
