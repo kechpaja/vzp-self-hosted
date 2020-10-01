@@ -194,6 +194,64 @@ let parseDotsAndCalls = (expr :: Object,
     else
         { ast: expr, rest: tokens, wellFormed: true }
 
+let parseTypeDef = (tokens :: [[Int64]]) =>
+    let recFunc = recur
+    let handleStatics = (tkns :: [[Int64]]) =>
+        if tkns.length == 0 then
+            fail("Problem parsing statics list")
+        else if tkns:0 == "|>" then
+            { ast: [], rest: restOf(tkns), wellFormed: true }
+        else if isValidId(tkns:0) then
+            let innerType = recFunc(restOf(tkns))
+            if !innerType.wellFormed then fail("Statics list") else
+            if innerType.rest:0 == "|>" then
+                { ast: [innerType.ast],
+                  rest: restOf(innerType.rest),
+                  wellFormed: true }
+            else if innerType.rest:0 == "," then
+                let restOfList = recur(restOf(innerType.rest))
+                if !restOfList.wellFormed then fail("Statics list") else
+                { ast: [innerType.ast] + restOfList.ast,
+                  rest: restOfList.rest,
+                  wellFormed: true }
+            else
+                fail("Reached end of statics list but no |>!")
+        else
+            fail("Some problem parsing statics list")
+
+    if tokens:0 == "{" then
+        let fields = parseParamList(restOf(tokens))
+        if !checkFor(fields.rest, "}") then
+            fail("Missing '}' in type definition")
+        else if !checkFor(restOf(fields.rest), "<|") then
+            { ast: { type: "type",
+                     fields: fields.ast,
+                     statics: [] },
+              rest: restOf(fields.rest),
+              wellFormed: true }
+        else
+            let statics = handleStatics(restOf(restOf(fields.rest)))
+            if !statics.wellFormed then fail("Error parsing type statics") else
+            { ast: { type: "type",
+                     fields: fields.ast,
+                     statics: statics.ast },
+              rest: statics.rest,
+              wellFormed: true }
+    else if tokens:0 == "<|" then
+        let statics = handleStatics(restOf(tokens))
+        if !statics.wellFormed then fail("Error parsing type statics") else
+        { ast: { type: "type",
+                 fields: [],
+                 statics: statics.ast },
+          rest: statics.rest,
+          wellFormed: true }
+    else
+        { ast: { type: "type", /* We do allow a type with no fields */
+                 fields: [],
+                 statics: [] },
+          rest: tokens,
+          wellFormed: true }
+
 let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
     let recurWithFullOps = let rcr = recur; (tkns :: [[Int64]]) => 
                                                         rcr(opsByPrec, tkns)
@@ -201,6 +259,8 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
     if operations.length == 0 then
         if tokens.length == 0 then
             fail("End of tokens in parse")
+        else if tokens:0 == "type" then
+            parseTypeDef(restOf(tokens))
         else if tokens:0 == "if" then
             let cond = recur(opsByPrec, restOf(tokens))
             if !cond.wellFormed || !checkFor(cond.rest, "then")

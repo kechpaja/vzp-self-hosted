@@ -30,14 +30,14 @@ syn keyword vzpBoolean          true false
 syn keyword vzpConditional      if then else
 syn keyword vzpException        throw
 syn keyword vzpImport           import as
-syn keyword vzpKeyword          let
+syn keyword vzpKeyword          let type
 syn keyword vzpReservedWord     recur self print IO ENV
 
 " Identifiers
 syn match vzpIdentifier "[a-zA-Z_][a-zA-Z0-9_]*"
 
 " Object fields and lookups
-syn match vzpObjectField "[a-zA-Z_][a-zA-Z0-9_]*\s*:"
+syn match vzpObjectField "[a-zA-Z_][a-zA-Z0-9_]*\s*:[^:]"
 syn match vzpObjectLookup "\.[a-zA-Z_][a-zA-Z0-9_]*"
 
 " Numbers 
