@@ -9,4 +9,4 @@ argfile="$(readlink -f $2)"
 
 cd "$(dirname "$(readlink -f "$0")")/versions/$1"
 
-node --stack-size=5000 vzp.js "$argfile"
+node --stack-size=9000 vzp.js "$argfile"

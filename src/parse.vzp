@@ -327,40 +327,11 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
             let right = recur(operations, restOf(left.rest))
             if !right.wellFormed then fail(right.error) else
             if !utils.in(left.rest:0, ["<@", "@>"]) then
-                /* Make short circuiting work as expected */
-                let wrapWithFunc = (x :: Object) =>
-                    /* XXX Needed because transform creates an overly large
-                     * program when we desugar short-circuiting straight to
-                     * conditionals. Can take this out once transform has
-                     * been updated to not duplicate code, or we decide to
-                     * remove short circuiting entirely (both are likely to
-                     * happen once the type system is in place). */
-                    { type: "call",
-                      func: { type: "lambda",
-                              params: [],
-                              body: x },
-                      args: [] }
-
-                if left.rest:0 == "&&" then
-                    { ast: wrapWithFunc({ type: "conditional",
-                             cond: left.ast,
-                             thn: right.ast,
-                             els: { type: "lookup", identifier: "false" } }),
-                      rest: right.rest,
-                      wellFormed: true }
-                else if left.rest:0 == "||" then
-                    { ast: wrapWithFunc({ type: "conditional",
-                             cond: left.ast,
-                             thn: { type: "lookup", identifier: "true" },
-                             els: right.ast }),
-                      rest: right.rest,
-                      wellFormed: true }
-                else
-                    { ast: { type: "call",
-                             func: { type: "lookup", identifier: left.rest:0 },
-                             args: [ left.ast, right.ast ] },
-                      rest: right.rest,
-                      wellFormed: true }
+                { ast: { type: "call",
+                         func: { type: "lookup", identifier: left.rest:0 },
+                         args: [ left.ast, right.ast ] },
+                  rest: right.rest,
+                  wellFormed: true }
             else
                 /* TODO This is where we check for a comma if we put that in */
                 let third = recur(operations, right.rest)

@@ -5,24 +5,6 @@
 
 const fs = require("fs");
 
-/* || */
-function __124__124_(closure, left, right) {
-    if (typeof left === "boolean" && typeof right === "boolean") {
-        return left || right;
-    }
-
-    throw "|| requires two booleans; got '" + left + "' and '" + right + "' instead";
-}
-
-/* && */
-function __38__38_(closure, left, right) {
-    if (typeof left === "boolean" && typeof right === "boolean") {
-        return left && right;
-    }
-
-    throw "&& requires two booleans; got '" + left + "' and '" + right + "' instead";
-}
-
 /* == */
 function __61__61_(closure, left, right) {
     if (left === right) {

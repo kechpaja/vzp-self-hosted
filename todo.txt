@@ -38,23 +38,13 @@ If the typechecker can catch and reject (some) infinite loops, that would be
 useful.  
 
 
-
-For transform: the algorithm needs to be re-thought, since it currently fails
-for a number of cases (not yet represented in the tests) in which there are
-several nested layers of ifs, lets, and other constructions in a lettable
-position.
-
-
-For defunc: consider not putting references to builtin functions into closure.
-
 For transform, consider not duplicating code in conditionals, as it can make
 the program grow immensely. 
 
-In general, we also have to think about whether we need short circuiting at
-all. The answer is probably no, but the current parser depends on short
-circuiting, so I can't take it out until later. I'm currently leaning towards
-saying that whether booleans operators short circuit is not defined and should
-not be counted on for control flow. 
+Short circuiting currently happens on *all* boolean binops, including things
+like (&&)(x, y) (although not if the operation was passed somewhere as a
+function). We are going to have to use the type system to enforce that things
+with side effects can't be used on either side of a boolean operator. 
 
 
 Maybe eventually complain if there are unreachable tokens in the file?

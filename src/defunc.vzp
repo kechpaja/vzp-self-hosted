@@ -7,11 +7,10 @@ import utils
  */
 
 /* XXX still missing a few things I'm not ready to put straight into JS */
-let binops = [ ">", ">=", "<", "<=", "-", "*", "/", "%", "array+" ]
+let binops = [ ">", ">=", "<", "<=", "-", "*", "/", "%", "array+", "||", "&&" ]
 let unops = [ "!", "unary -" ]
 
-let corefuncs = [ "||", "&&", "==", "!=", "+", "$", "@>", "<@", "print", ":",
-                  ".." ]
+let corefuncs = [ "==", "!=", "+", "$", "@>", "<@", "print", ":", ".." ]
 let builtins = corefuncs + unops + binops
 
 let unique = (list :: [[Int64]]) =>
@@ -197,7 +196,7 @@ let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
 (program_as_string :: [Int64]) =>
     let firstStep = defunc_main(transform(program_as_string), [], 0)
     let addLets = (operation :: [Int64], ast :: Object) => 
-        { type: "assignment",
+        { type: "js-assignment",
           identifier: operation,
           value: { type: "object",
                    contents: [{ identifier: "()",
