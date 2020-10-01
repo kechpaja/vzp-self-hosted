@@ -3,10 +3,9 @@ RUN			= ./run.sh
 
 default: prod
 
-prod: staging
-	@$(RUN) 00-testing/staging src/main > versions/00-testing/vzp.unpacked.js; \
-	npx webpack -o versions/00-testing/vzp.js --target=node --mode=production --silent versions/00-testing/vzp.unpacked.js; \
-	cp src/*.js versions/00-testing/; \
+prod: dev
+	@mv versions/00-testing/vzp.js versions/00-testing/vzp.unpacked.js; \
+	npx webpack -o versions/00-testing/vzp.js --target=node --mode=production versions/00-testing/vzp.unpacked.js; \
 	$(RM) -rf versions/00-testing/staging versions/00-testing/vzp.unpacked.js
 
 dev: staging
