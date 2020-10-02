@@ -21,7 +21,10 @@ import typecheck
  * the array.
  * 
  * But none of this works without robust type checking, so that needs to be the
- * first step. 
+ * first step. But we can't really have that until we've replaced the raw
+ * objects with user-defined types (it would be possible without but it would be
+ * a serious pain to implement), so let's start by desugaring constructor calls
+ * down to objects. 
  * */
 
 let desugar_main = (ast :: Object) =>

@@ -370,8 +370,12 @@ let typecheck = (ast :: Object, env :: [Object]) =>
               contents: newContents,
               ann: { category: "named", name: "Object" } }
     else if ast.type == "type" then
-        narrowest /* This is a terrible hack, but I can't write the real 
-                   * typechecker without user-defined types. */
+        { type: "type",
+          fields: ast.fields,
+          statics: ast.statics,
+          ann: narrowest }
+        /* This is a terrible hack, but I can't write the real typechecker
+         * without user-defined types, not without tearing out my hair. */
     else
         let asfd = print(ast)
         ast
