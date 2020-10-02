@@ -1,0 +1,31 @@
+import typecheck
+
+/*
+ * This stage will come right after the typechecker, but I'm not really ready to
+ * put it into the compiler just yet.
+ * 
+ * User-defined types are going to be desugared down into objects (and later
+ * probably arrays, although we can wait on that for now). Each object will
+ * contain a field "()" pointing to a constructor; I will probably have to mark
+ * the constructors as constructors for now to avoid them getting transformed in
+ * defunc. 
+ * 
+ * Alternatively, we can skip this step entirely and just keep types in until we
+ * get to defunc, which might be the best idea.
+ *
+ * A third option is to desugar constuctor _calls_ directly into object
+ * literals, which might not be such a bad idea. In both cases, we could go
+ * straight to arrays, which we're going to need to do eventually anyway.
+ * Constructor calls at least are easy in that regard: the order in which the
+ * arguments to the constructor go is the order that the fields will appear in
+ * the array.
+ * 
+ * But none of this works without robust type checking, so that needs to be the
+ * first step. 
+ * */
+
+let desugar_main = (ast :: Object) =>
+    ast
+
+
+(module_name :: [Int64]) => desugar_main(typecheck(module_name))

@@ -1,4 +1,4 @@
-import typecheck
+import desugar
 import utils
 
 let restOf = (x :: [Object]) => if x.length <= 1 then [] else x:1..(x.length-1)
@@ -144,4 +144,4 @@ let transform_main = (ast :: Object, binder :: (Object) Object) =>
         binder(ast)
 
 (program_as_string :: [Int64]) =>
-    transform_main(uniqueIds(typecheck(program_as_string)), (x :: Object) => x)
+    transform_main(uniqueIds(desugar(program_as_string)), (x :: Object) => x)
