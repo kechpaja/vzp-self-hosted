@@ -3,6 +3,8 @@ import utils
 
 let restOf = (x :: [Object]) => if x.length <= 1 then [] else x:1..(x.length-1)
 
+let ctoid = (x :: Int64) => "i" + utils.itoa(x)
+
 /* Run through AST and add something to IDs to make them unique */
 let uniqueIds = (astOuter :: Object) =>
     ((ast :: Object, env :: [Object], count :: Int64) =>
@@ -28,11 +30,11 @@ let uniqueIds = (astOuter :: Object) =>
             let value = recur(ast.value, env, count + 1)
             let body = recur(ast.body,
                              appendToEnv(ast.identifier,
-                                         "i" + utils.itoa(count),
+                                         ctoid(count),
                                          env),
                              value.count)
             { ast: { type: "assignment",
-                     identifier: "i" + utils.itoa(count),
+                     identifier: ctoid(count),
                      value: value.ast,
                      body: body.ast },
               count: body.count }
@@ -59,9 +61,17 @@ let uniqueIds = (astOuter :: Object) =>
                      field: ast.field },
               count: obj.count }
         else if ast.type == "lambda" then
-            let body = recur(ast.body, env, count)
+            let augmentEnv = (params :: [[Int64]], e :: [Object], c :: Int64) =>
+                let ln = params.length
+                if ln == 0 then e else
+                if ln == 1 then appendToEnv(params:0, ctoid(c), e) else
+                appendToEnv(params:0, ctoid(c), recur(params:1..(ln-1), e, c+1))
+
+            let newEnv = augmentEnv(ast.params, env, count)
+            let body = recur(ast.body, newEnv, count + ast.params.length)
             { ast: { type: "lambda",
-                     params: ast.params, /* XXX Replace these? */
+                     params: ((x :: Int64) => 
+                                  replaceIfInEnv(x, newEnv)) $ ast.params,
                      body: body.ast },
               count: body.count }
         else if ast.type == "lookup" then

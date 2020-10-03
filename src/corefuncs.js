@@ -64,19 +64,19 @@ function __43_(closure, left, right) {
 
 /* $ */
 function __36_(closure, left, right) {
-    if (typeof left === "object" && typeof left.__40__41_ === "function" && Array.isArray(right)) {
-        return right.map(function (x) { return left.__40__41_(left, x); });
+    if (typeof left === "object" && typeof left._f === "function" && Array.isArray(right)) {
+        return right.map(function (x) { return left._f(left, x); });
     }
 
-    throw "$ expects a function and an array; got '" + left + "' and '" + right + "' instead";
+    throw "$ expects a function and an array; got '" + JSON.stringify(left) + "' and '" + right + "' instead";
 }
 
 /* @> */
 function __64__62_(closure, one, two, three) {
-    if (typeof one === "object" && typeof one.__40__41_ === "function" && Array.isArray(two)) {
+    if (typeof one === "object" && typeof one._f === "function" && Array.isArray(two)) {
         let acc = three;
         two.concat([]).reverse().forEach(function (x) {
-            acc = one.__40__41_(one, x, acc);
+            acc = one._f(one, x, acc);
         });
 
         return acc;
@@ -87,10 +87,10 @@ function __64__62_(closure, one, two, three) {
 
 /* <@ */
 function __60__64_(closure, one, two, three) {
-    if (typeof one === "object" && typeof one.__40__41_ === "function" && Array.isArray(three)) {
+    if (typeof one === "object" && typeof one._f === "function" && Array.isArray(three)) {
         let acc = two;
         three.forEach(function (x) {
-            acc = one.__40__41_(one, acc, x);
+            acc = one._f(one, acc, x);
         });
 
         return acc;
@@ -162,7 +162,7 @@ const _ENV = {
 /* IO functions */
 const _IO = {
     _read: {
-        __40__41_: function (closure, path) {
+        _f: function (closure, path) {
             return fs.readFileSync(
                 String.fromCodePoint.apply(this, path), 
                 "utf8"
@@ -170,7 +170,7 @@ const _IO = {
         }
     },
     _write: {
-        __40__41_: function (closure, path, data) {
+        _f: function (closure, path, data) {
             // TODO error checking?
 
             let pathString = String.fromCodePoint.apply(this, path);

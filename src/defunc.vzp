@@ -76,7 +76,7 @@ let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
             { ast: { type: "call",
                      func: { type: "field_access",
                              obj: func.ast,
-                             field: "()" },
+                             field: "f" },
                      args: [func.ast] + args.asts },
               funcs: func.funcs + args.funcs,
               closure: func.closure + args.closure,
@@ -122,24 +122,24 @@ let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
                               identifier: x,
                               value: { type: "field_access",
                                        obj: { type: "lookup",
-                                              identifier: "()" },
+                                              identifier: "f" },
                                        field: x },
                               body: inner }) @> closureIds body.ast
         let closure = ((x :: [Int64]) => 
                             { identifier: x,
                               value: { type: "lookup",
                                        identifier: x } }) $ closureIds
-        let funcPair = [{ identifier: "()",
+        let funcPair = [{ identifier: "f",
                           value: { type: "lookup", 
-                                   identifier: "()" + utils.itoa(count) } }]
+                                   identifier: "f" + utils.itoa(count) } }]
         { ast: { type: "object",
                  contents: closure + funcPair },
-          funcs: [{ name: "()" + utils.itoa(count),
-                    params: ["()"] + ast.params,
+          funcs: [{ name: "f" + utils.itoa(count),
+                    params: ["f"] + ast.params,
                     body: { type: "js-assignment",
                             identifier: "recur",
                             value: { type: "lookup",
-                                     identifier: "()" }, /* Closure param */
+                                     identifier: "f" }, /* Closure param */
                             body: newBody } }] + body.funcs,
           closure: ((x :: [Int64], list :: [[Int64]]) =>
                         if utils.in(x, env) then list 
@@ -166,7 +166,7 @@ let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
              * We do need to create primitive closures for them so that they 
              * can be passed intuitively though.*/
             { ast: { type: "object",
-                     contents: [{ identifier: "()",
+                     contents: [{ identifier: "f",
                                   value: { type: "lookup",
                                            identifier: ast.identifier } }] },
               funcs: [],
@@ -199,27 +199,27 @@ let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
         { type: "js-assignment",
           identifier: operation,
           value: { type: "object",
-                   contents: [{ identifier: "()",
+                   contents: [{ identifier: "f",
                                 value: { type: "lookup",
-                                         identifier: "()" + operation } }] },
+                                         identifier: "f" + operation } }] },
           body: ast }
     let generateFuncs = (operation :: [Int64]) =>
         if utils.in(operation, unops) then
-            { name: "()" + operation,
-              params: [ "()", "x 1" ],
+            { name: "f" + operation,
+              params: [ "f", "x" ],
               body: { type: "unop",
                       operation: operation,
                       arg: { type: "lookup",
-                             identifier: "x 1" } } }
+                             identifier: "x" } } }
         else
-            { name: "()" + operation,
-              params: [ "()", "x 1", "x 2" ],
+            { name: "f" + operation,
+              params: [ "f", "x", "y" ],
               body: { type: "binop",
                       operation: operation,
                       left: { type: "lookup",
-                              identifier: "x 1" },
+                              identifier: "x" },
                       right: { type: "lookup",
-                               identifier: "x 2" } } }
+                               identifier: "y" } } }
     let liftedBuiltins = unique(firstStep.builtins)
     { ast: addLets @> liftedBuiltins firstStep.ast,
       funcs: (generateFuncs $ liftedBuiltins) + firstStep.funcs }
