@@ -376,7 +376,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         { type: "type",
           fields: ast.fields,
           statics: ast.statics,
-          ann: narrowest }
+          ann: { category: "type" } }
         /* This is a terrible hack, but I can't write the real typechecker
          * without user-defined types, not without tearing out my hair. */
     else
