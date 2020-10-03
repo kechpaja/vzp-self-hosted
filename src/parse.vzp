@@ -205,13 +205,14 @@ let parseTypeDef = (tokens :: [[Int64]]) =>
             let innerType = recFunc(restOf(tkns))
             if !innerType.wellFormed then fail("Statics list") else
             if innerType.rest:0 == "|>" then
-                { ast: [innerType.ast],
+                { ast: [{ identifier: tkns:0, value: innerType.ast }],
                   rest: restOf(innerType.rest),
                   wellFormed: true }
             else if innerType.rest:0 == "," then
                 let restOfList = recur(restOf(innerType.rest))
                 if !restOfList.wellFormed then fail("Statics list") else
-                { ast: [innerType.ast] + restOfList.ast,
+                { ast: [{ identifier: tkns:0, 
+                          value: innerType.ast }] + restOfList.ast,
                   rest: restOfList.rest,
                   wellFormed: true }
             else

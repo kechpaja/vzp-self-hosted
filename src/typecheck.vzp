@@ -134,13 +134,16 @@ let typecheck = (ast :: Object, env :: [Object]) =>
             if argsType.category == "named" && argsType.name == "Int64" then
                 { type: "call",
                   func: { type: "lookup",
-                          identifier: "+" },
+                          identifier: "+",
+                          ann: function([int64, int64], int64) },
                   args: newArgs,
                   ann: argsType }
             else if argsType.category == "array" then
                 { type: "call",
                   func: { type: "lookup",
-                          identifier: "array+" },
+                          identifier: "array+",
+                          ann: function([array(narrowest), array(narrowest)],
+                                        array(narrowest)) },
                   args: newArgs,
                   ann: argsType }
             else

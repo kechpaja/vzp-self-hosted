@@ -1,34 +1,85 @@
 import typecheck
+import utils
 
-/*
- * This stage will come right after the typechecker, but I'm not really ready to
- * put it into the compiler just yet.
- * 
- * User-defined types are going to be desugared down into objects (and later
- * probably arrays, although we can wait on that for now). Each object will
- * contain a field "()" pointing to a constructor; I will probably have to mark
- * the constructors as constructors for now to avoid them getting transformed in
- * defunc. 
- * 
- * Alternatively, we can skip this step entirely and just keep types in until we
- * get to defunc, which might be the best idea.
- *
- * A third option is to desugar constuctor _calls_ directly into object
- * literals, which might not be such a bad idea. In both cases, we could go
- * straight to arrays, which we're going to need to do eventually anyway.
- * Constructor calls at least are easy in that regard: the order in which the
- * arguments to the constructor go is the order that the fields will appear in
- * the array.
- * 
- * But none of this works without robust type checking, so that needs to be the
- * first step. But we can't really have that until we've replaced the raw
- * objects with user-defined types (it would be possible without but it would be
- * a serious pain to implement), so let's start by desugaring constructor calls
- * down to objects. 
- * */
+let objectOffset = 1
+let typeOffset = 0
+
+let ids = (objList :: [Object]) => ((x :: Object) => x.identifier) $ objList
+let params = (objList :: [Object]) => ((x :: Object) => x.param) $ objList
+let values = (objList :: [Object]) => ((x :: Object) => x.value) $ objList
 
 let desugar_main = (ast :: Object) =>
-    ast
+    if ast.type == "array" then
+        { type: "array",
+          contents: recur $ ast.contents }
+    else if ast.type == "assignment" then
+        { type: "assignment",
+          identifier: ast.identifier,
+          value: recur(ast.value),
+          body: recur(ast.body) }
+    else if ast.type == "call" then
+        if ast.func.ann.category == "type" then
+            { type: "array",
+              contents: [recur(ast.func)] + recur $ ast.args }
+        else
+            { type: "call",
+              func: recur(ast.func),
+              args: recur $ ast.args }
+        /* TODO Stuff with builtins for overloading? */
+    else if ast.type == "conditional" then
+        { type: "conditional",
+          cond: recur(ast.cond),
+          thn: recur(ast.thn),
+          els: recur(ast.els) }
+    else if ast.type == "field_access" then
+        if ast.obj.ann.category == "named" && ast.obj.ann.name == "Object"
+                || ast.obj.ann.category == "array" 
+                || ast.obj.ann.category == "dummy" then
+            { type: "field_access",
+              obj: recur(ast.obj),
+              field: ast.field }
+        else if ast.obj.ann.category == "type" then /* TODO do we need this? */
+            let index = utils.strIndexInArray(ast.field,
+                                              ids(ast.obj.ann.statics))
+            { type: "call",
+              func: { type: "lookup", identifier: ":" },
+              args: [ recur(ast.obj),
+                      { type: "number", value: index + typeOffset } ] }
+        else
+            /* TODO someday we'll have methods here too! And defaults! */
+            let index = utils.strIndexInArray(ast.field,
+                                              params(ast.obj.ann.fields))
+            { type: "call", /* TODO got to add a subscript variant */
+              func: { type: "lookup", identifier: ":" },
+              args: [ recur(ast.obj), 
+                      { type: "number", value: index + objectOffset } ] }
+    else if ast.type == "lambda" then
+        { type: "lambda",
+          params: ast.params,
+          body: recur(ast.body) }
+    else if ast.type == "lookup" then
+        { type: "lookup",
+          identifier: ast.identifier }
+    else if ast.type == "number" then
+        { type: "number",
+          value: ast.value }
+    else if ast.type == "object" then
+        let recFunc = recur
+        { type: "object",
+          contents: ((x :: Object) => { 
+              identifier: x.identifier,
+              value: recFunc(x.value)
+          }) $ ast.contents }
+    else if ast.type == "type" then
+        /* This will not allow for inheritance. Giving each type a pointer back
+         * to its supertype will require mutation, which I'm not ready to put
+         * in at this point. But we can change that later when we actually have
+         * methods, and we might just stick all the methods in every type or
+         * something like that as a hack at first. */
+        { type: "array",
+          contents: recur $ values(ast.statics) }
+    else
+        ast
 
 
 (module_name :: [Int64]) => desugar_main(typecheck(module_name))
