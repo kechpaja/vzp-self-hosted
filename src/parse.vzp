@@ -220,7 +220,7 @@ let parseTypeDef = (tokens :: [[Int64]]) =>
             else
                 fail("Reached end of statics list but no |>!")
         else
-            fail("Some problem parsing statics list")
+            fail("Some problem parsing statics list: " + tkns:0)
 
     if tokens:0 == "{" then
         let fields = parseParamList(restOf(tokens))

@@ -1,0 +1,15 @@
+let VType = type <|
+    v1t {
+        x :: Int64
+    },
+    v2t {
+        x :: [Int64]
+    }
+|>
+
+
+let t1 = VType.v1t(43)
+let t2 = VType.v2t("XYZ")
+
+
+print([t1.x] + t2.x)

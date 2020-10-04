@@ -245,15 +245,13 @@ let typecheck = (ast :: Object, env :: [Object]) =>
               func: newFunc,
               args: newArgs,
               ann: narrowest }
-
         else if newFunc.ann.category == "type" then
             { type: "call",
               func: newFunc,
               args: newArgs,
               ann: { category: "user-defined",
                      fields: newFunc.ann.fields,
-                     statics: newFunc.ann.statics } } /* TODO actual type */
-
+                     statics: newFunc.ann.statics } } /* TODO check args */
         else if newFunc.ann.category == "error" then
             { type: "call",
               func: newFunc,
@@ -320,11 +318,22 @@ let typecheck = (ast :: Object, env :: [Object]) =>
               ann: { category: "error", name: "Cond requires a boolean." } }
     else if ast.type == "field_access" then
         let newObj = recur(ast.obj, env)
-        if newObj.ann.category == "array" && ast.field == "length" then
-            { type: "field_access", /* XXX Get rid of this special case if we */
-              obj: newObj,          /* ever replace .length */
-              field: ast.field,
-              ann: int64 }
+        if newObj.ann.category == "type" then
+            let index = utils.strIndexInArray(
+                ast.field,
+                ((x :: Object) => x.identifier) $ newObj.ann.statics
+            )
+
+            if index < 0 then
+                { type: "field_access",
+                  obj: newObj,
+                  field: ast.field,
+                  ann: { category: "error", name: "No subtype '" + ast.field } }
+            else
+                { type: "field_access",
+                  obj: newObj,
+                  field: ast.field,
+                  ann: (newObj.ann.statics:index).value }
         else if newObj.ann.category == "user-defined" then
             let index = utils.strIndexInArray(
                 ast.field,
@@ -341,7 +350,11 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   obj: newObj,
                   field: ast.field,
                   ann: (newObj.ann.fields:index).ann }
-        /* TODO category == "type" as well */
+        else if newObj.ann.category == "array" && ast.field == "length" then
+            { type: "field_access", /* XXX Get rid of this special case if we */
+              obj: newObj,          /* ever replace .length */
+              field: ast.field,
+              ann: int64 }
         else if !((newObj.ann.category == "named" 
                     && newObj.ann.name == "Object")
                   || newObj.ann.category == "dummy") then
@@ -401,12 +414,17 @@ let typecheck = (ast :: Object, env :: [Object]) =>
               contents: newContents,
               ann: { category: "named", name: "Object" } }
     else if ast.type == "type" then
+        let recFunc = recur
+        let sflds = ((x :: Object) => { identifier: x.identifier,
+                                        value: recFunc(x.value) }) $ ast.statics
+        let annflds = ((x :: Object) => { identifier: x.identifier,
+                                          value: x.value.ann }) $ sflds
         { type: "type",
           fields: ast.fields,
-          statics: ast.statics,
+          statics: sflds,
           ann: { category: "type",
                  fields: ast.fields,
-                 statics: ast.statics } }
+                 statics: annflds } }
         /* This is a terrible hack, but I can't write the real typechecker
          * without user-defined types, not without tearing out my hair. */
     else

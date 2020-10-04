@@ -37,6 +37,12 @@ overboard.
 If the typechecker can catch and reject (some) infinite loops, that would be
 useful.  
 
+I don't think we're currently handling multi-level types, where fields in the
+more generic type should also be reflected in the subtype constructors. This
+will have to change in the new typechecker, but for now I think it's better
+punted on. 
+
+
 
 For transform, consider not duplicating code in conditionals, as it can make
 the program grow immensely. 
