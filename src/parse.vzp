@@ -110,14 +110,16 @@ let parseParam = (tokens :: [[Int64]]) =>
           wellFormed: true }
 
 let parseParamList = (tokens :: [[Int64]]) =>
-    if (tokens.length == 0) || ((tokens:0) == ")") then
+    if (tokens.length == 0) || ((tokens:0) == ")") || ((tokens:0) == "}") then
         { ast: [], rest: tokens, wellFormed: true }
     else
         let param = parseParam(tokens)
         if !param.wellFormed then { wellFormed: false } else
-        if checkFor(param.rest, ",") || checkFor(param.rest, ")") then
-            let recurOn = if param.rest:0 == ")" then param.rest
-                                                 else restOf(param.rest)
+        if checkFor(param.rest, ",") || checkFor(param.rest, ")")
+                                     || checkFor(param.rest, "}") then
+            let recurOn = if utils.in(param.rest:0, [")", "}"]) 
+                          then param.rest
+                          else restOf(param.rest)
             let laterParams = recur(recurOn)
             if !laterParams.wellFormed then { wellFormed: false } else
             { ast: [ { param: param.param, ann: param.ann } ] + laterParams.ast,

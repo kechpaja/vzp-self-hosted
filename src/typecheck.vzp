@@ -54,8 +54,9 @@ let unify = (t1 :: Object, t2 :: Object) =>
             array(inner)
     else if t1.category == "function" then
         let unifiedReturn = recur(t1.return, t2.return)
-        if unifiedReturn.category == "error" then unifiedReturn else
-        if t1.params.length != t2.params.length then
+        if unifiedReturn.category == "error" then
+            { category: "error", name: "return: " + unifiedReturn.name } 
+        else if t1.params.length != t2.params.length then
             { category: "error", name: "arity mismatch" }
         else
 
@@ -177,8 +178,9 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   args: newArgs,
                   ann: (newArgs:0).ann.contents }
             else if (newArgs:0).ann.category == "dummy"
-                    && (newArgs:1).ann.category == "named"
-                    && (newArgs:1).ann.name == "Int64" then
+                    && ((newArgs:1).ann.category == "dummy"
+                    || (newArgs:1).ann.category == "named"
+                    && (newArgs:1).ann.name == "Int64") then
                 { type: "call",
                   func: newFunc,
                   args: newArgs,
@@ -196,7 +198,8 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                 { type: "call",
                   func: newFunc,
                   args: newArgs,
-                  ann: { category: "error", name: "incompatible types in ':'" } }
+                  ann: { category: "error",
+                         name: "incompatible types in ':'" } }
         else if newFunc.type == "lookup" && newFunc.identifier == "@>"
                                          && newArgs.length == 3 then
             let one = (newArgs:0).ann
@@ -242,6 +245,14 @@ let typecheck = (ast :: Object, env :: [Object]) =>
               func: newFunc,
               args: newArgs,
               ann: narrowest }
+
+        else if newFunc.ann.category == "type" then
+            { type: "call",
+              func: newFunc,
+              args: newArgs,
+              ann: { category: "user-defined",
+                     fields: newFunc.ann.fields,
+                     statics: newFunc.ann.statics } } /* TODO actual type */
 
         else if newFunc.ann.category == "error" then
             { type: "call",
@@ -314,6 +325,23 @@ let typecheck = (ast :: Object, env :: [Object]) =>
               obj: newObj,          /* ever replace .length */
               field: ast.field,
               ann: int64 }
+        else if newObj.ann.category == "user-defined" then
+            let index = utils.strIndexInArray(
+                ast.field,
+                ((x :: Object) => x.param) $ newObj.ann.fields
+            )
+
+            if index < 0 then
+                { type: "field_access",
+                  obj: newObj,
+                  field: ast.field,
+                  ann: { category: "error", name: "No field '" + ast.field } }
+            else
+                { type: "field_access",
+                  obj: newObj,
+                  field: ast.field,
+                  ann: (newObj.ann.fields:index).ann }
+        /* TODO category == "type" as well */
         else if !((newObj.ann.category == "named" 
                     && newObj.ann.name == "Object")
                   || newObj.ann.category == "dummy") then
@@ -376,7 +404,9 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         { type: "type",
           fields: ast.fields,
           statics: ast.statics,
-          ann: { category: "type" } }
+          ann: { category: "type",
+                 fields: ast.fields,
+                 statics: ast.statics } }
         /* This is a terrible hack, but I can't write the real typechecker
          * without user-defined types, not without tearing out my hair. */
     else

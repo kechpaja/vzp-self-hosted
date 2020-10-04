@@ -1,0 +1,9 @@
+let Type = type {
+    field :: Int64
+}
+
+let x = Type(40)
+let y = x.field
+
+print([y])
+
