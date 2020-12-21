@@ -45,6 +45,13 @@ let unify = (t1 :: Object, t2 :: Object) =>
         if t1.name == t2.name then t1 else
         { category: "error",
           name: "named types do not match: " + t1.name + ", " + t2.name }
+
+    else if t1.category == "user-defined" then t1
+        /* XXX Needless to say, this doesn't actually check the type. What it
+         * does do is allow us to run programs that are typechecked by hand and
+         * contain switch statements, which will make it much easier to write
+         * the next iteration of the typechecker, which _will_ check the type.*/
+
     else if t1.category == "array" then
         let inner = recur(t1.contents, t2.contents)
         if inner.category == "error" then
@@ -413,6 +420,26 @@ let typecheck = (ast :: Object, env :: [Object]) =>
             { type: "object",
               contents: newContents,
               ann: { category: "named", name: "Object" } }
+    else if ast.type == "switch" then
+        let recFunc = recur
+        let expr = recur(ast.expr, env)
+        let cases = ((x :: Object) =>
+            /* TODO if left is just a bare type, then we don't have to do
+             * anything special here. If it is a call, though, we have to 
+             * pull the arguments out and bind them. 
+             *
+             * This more or less requires that we do some desugaring here. 
+             * We have to bind the expr to something as well. */
+
+            let left = recFunc(x.left, env)
+            { left: recFunc(x.left, env),
+              right: recFunc(x.right, env) }) $ ast.cases
+        /* TODO what types do the left sides need to be? */
+        /* TODO make sure they get to be that */
+        { type: "switch",
+          expr: expr,
+          cases: cases,
+          ann: unifyList(((x :: Object) => x.right.ann) $ cases) }
     else if ast.type == "type" then
         let recFunc = recur
         let sflds = ((x :: Object) => { identifier: x.identifier,

@@ -30,7 +30,7 @@ syn keyword vzpBoolean          true false
 syn keyword vzpConditional      if then else
 syn keyword vzpException        throw
 syn keyword vzpImport           import as
-syn keyword vzpKeyword          let type
+syn keyword vzpKeyword          let type switch
 syn keyword vzpReservedWord     recur self print IO ENV
 
 " Identifiers

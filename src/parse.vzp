@@ -255,6 +255,38 @@ let parseTypeDef = (tokens :: [[Int64]]) =>
           rest: tokens,
           wellFormed: true }
 
+let parseMap = (tokens :: [[Int64]],
+                parseExpr :: ([[[Int64]]], [[Int64]]) Object) =>
+    let left = parseExpr(opsByPrec, tokens)
+    if !left.wellFormed then fail("parseMap: " + left.error) else
+    if !checkFor(left.rest, "->") then fail("No -> in map!") else
+    let right = parseExpr(opsByPrec, restOf(left.rest))
+    if checkFor(right.rest, ",") then
+        let rec = recur(restOf(right.rest), parseExpr)
+        if !rec.wellFormed then fail(rec.error) else
+        { ast: [{ left: left.ast, right: right.ast}] + rec.ast,
+          rest: rec.rest,
+          wellFormed: true } 
+    else
+        { ast: [{ left: left.ast, right: right.ast}],
+          rest: right.rest,
+          wellFormed: true }
+
+let parseSwitch = (tokens :: [[Int64]],
+                   parseExpr :: ([[[Int64]]], [[Int64]]) Object) =>
+    /* switch <expr> <| <case> -> <another expr>, ... |> */
+    let expr = parseExpr(opsByPrec, tokens)
+    if !expr.wellFormed then fail("parseSwitch: " + expr.error) else
+    if !checkFor(expr.rest, "<|") then fail("No <| in switch statement") else
+    let cases = parseMap(restOf(expr.rest), parseExpr)
+    if !cases.wellFormed then fail("parseSwitch: " + cases.error) else
+    if !checkFor(cases.rest, "|>") then fail("No |> in switch statement") else
+    { ast: { type: "switch",
+             expr: expr.ast,
+             cases: cases.ast },
+      rest: restOf(cases.rest),
+      wellFormed: true }
+
 let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
     let recurWithFullOps = let rcr = recur; (tkns :: [[Int64]]) => 
                                                         rcr(opsByPrec, tkns)
@@ -264,6 +296,8 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
             fail("End of tokens in parse")
         else if tokens:0 == "type" then
             parseTypeDef(restOf(tokens))
+        else if tokens:0 == "switch" then
+            parseSwitch(restOf(tokens), recur)
         else if tokens:0 == "if" then
             let cond = recur(opsByPrec, restOf(tokens))
             if !cond.wellFormed || !checkFor(cond.rest, "then")

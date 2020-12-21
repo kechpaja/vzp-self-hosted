@@ -1,0 +1,21 @@
+let Animal = type <|
+    dog {
+        trick :: [Int64]
+    },
+    cat {
+        lives :: Int64
+    }
+|>
+
+let f = (x :: Int64) =>
+    if x > 0 then Animal.dog("fetch") else Animal.cat(100)
+
+
+let d = f(4)
+
+let y = switch d <|
+    cat(lives) -> [lives],
+    dog(trick) -> trick
+|>
+
+print(y)
