@@ -1,0 +1,10 @@
+import test_type as T
+
+let x = T.v2(97, true)
+
+let f = (y :: T) => switch y <|
+    T.v1 -> "Error",
+    T.v2 -> if that.z then [that.y] else "Argh"
+|>
+
+print(f(x))

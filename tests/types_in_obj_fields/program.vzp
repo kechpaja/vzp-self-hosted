@@ -1,0 +1,19 @@
+/* TODO this will eventually work, but not yet. */
+
+let o = {
+    field: type <|
+        v1 {
+            x :: Int64
+        },
+        v2 {
+            y :: [Int64]
+        }
+    |>
+}
+
+let f = (a :: o.field) => switch a <|
+    o.field.v1 -> [that.x],
+    o.field.v2 -> that.y
+|>
+
+print(f(o.field.v2("asdf")))

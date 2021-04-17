@@ -1,0 +1,9 @@
+type <|
+    v1 {
+        x :: Int64
+    },
+    v2 {
+        y :: Int64,
+        z :: Boolean
+    }
+|>
