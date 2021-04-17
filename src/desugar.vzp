@@ -8,6 +8,9 @@ let ids = (objList :: [Object]) => ((x :: Object) => x.identifier) $ objList
 let params = (objList :: [Object]) => ((x :: Object) => x.param) $ objList
 let values = (objList :: [Object]) => ((x :: Object) => x.value) $ objList
 
+let restOf = (list :: [Object]) => 
+    if list.length <= 1 then [] else list:(1..(list.length-1))
+
 let desugar_main = (ast :: Object) =>
     if ast.type == "array" then
         { type: "array",
@@ -70,6 +73,30 @@ let desugar_main = (ast :: Object) =>
               identifier: x.identifier,
               value: recFunc(x.value)
           }) $ ast.contents }
+    else if ast.type == "switch" then
+        /* XXX This only works for single-level types. It needs to be expanded.
+         * Need to do something like "is subtype of" as well as instance of. */
+        let recFunc = recur
+        let handleCases = (cases :: [Object], bottom :: Object) =>
+            if cases == [] then bottom else
+            { type: "conditional",
+              cond: { type: "call",
+                      func: { type: "lookup", identifier: "ref=" },
+                      args: [recFunc((cases:0).left), 
+                             { type: "call",
+                               func: { type: "lookup", identifier: ":" },
+                               args: [{ type: "lookup", identifier: "x x" },
+                                      { type: "number", value: 0 }] }] },
+              thn: { type: "assignment",
+                     identifier: "that",
+                     value: { type: "lookup", identifier: "x x" },
+                     body: recFunc((cases:0).right) },
+              els: recur(restOf(cases), bottom) }
+
+        { type: "assignment",
+          identifier: "x x",
+          value: recur(ast.expr),
+          body: handleCases(ast.cases, recur(ast.els)) }
     else if ast.type == "type" then
         /* This will not allow for inheritance. Giving each type a pointer back
          * to its supertype will require mutation, which I'm not ready to put

@@ -10,7 +10,7 @@ import utils
 let binops = [ ">", ">=", "<", "<=", "-", "*", "/", "%", "array+", "||", "&&" ]
 let unops = [ "!", "unary -" ]
 
-let corefuncs = [ "==", "!=", "+", "$", "@>", "<@", "print", ":", ".." ]
+let corefuncs = [ "==", "!=", "+", "$", "@>", "<@", "print", ":", "..", "ref=" ]
 let builtins = corefuncs + unops + binops
 
 let unique = (list :: [[Int64]]) =>

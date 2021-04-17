@@ -130,6 +130,11 @@ function _print(closure, arg) {
     return arg; // TODO ???
 }
 
+/* ref= */
+function _ref_61_(closure, left, right) {
+    return left === right;
+}
+
 
 /* ENV environment stuff (currently just argv) */
 const _ENV = {

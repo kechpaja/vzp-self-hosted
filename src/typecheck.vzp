@@ -25,7 +25,7 @@ let stringifyType = (t :: Object) =>
     else if t.category == "error" then
         "Error: " + t.name
     else
-        "" + t
+        "UNKNOWNTYPE(" + t.category + ")" /*"" + t*/
 
 /* TODO when we introduce user-defined types, this will get more complex
  * Also, for now we handle objects as just named types, and don't look inside.
@@ -37,6 +37,11 @@ let unify = (t1 :: Object, t2 :: Object) =>
     else if t2.category == "error" then t2
     else if t1.category == "dummy" && t1.name == "narrowest" then t2
     else if t2.category == "dummy" && t2.name == "narrowest" then t1
+
+    /* TODO these need to actually check membership! */
+    else if t1.category == "user-defined" && t2.category == "type" then t2
+    else if t1.category == "type" && t2.category == "user-defined" then t1
+
     else if t1.category != t2.category then 
         { category: "error",
           name: "incompatible types: " + stringifyType(t1) + ", "
@@ -45,6 +50,13 @@ let unify = (t1 :: Object, t2 :: Object) =>
         if t1.name == t2.name then t1 else
         { category: "error",
           name: "named types do not match: " + t1.name + ", " + t2.name }
+
+    else if t1.category == "user-defined" then t1
+        /* XXX Needless to say, this doesn't actually check the type. What it
+         * does do is allow us to run programs that are typechecked by hand and
+         * contain switch statements, which will make it much easier to write
+         * the next iteration of the typechecker, which _will_ check the type.*/
+
     else if t1.category == "array" then
         let inner = recur(t1.contents, t2.contents)
         if inner.category == "error" then
@@ -80,6 +92,9 @@ let appendToEnv = (id :: [Int64], t :: Object, env :: [Object]) =>
 let getFromEnv = (id :: [Int64], env :: [Object]) =>
     if env == [] then { category: "error", name: "unbound: " + id } else
     if (env:0).id == id then (env:0).t else recur(id, restOf(env))
+let isInEnv = (id :: [Int64], env :: [Object]) => 
+    if env == [] then false else
+    if (env:0).id == id then true else recur(id, restOf(env))
 
 
 /* Returns a new AST with annotations */
@@ -373,7 +388,12 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         let midEnv = ((p :: Object, e :: [Object]) => 
                         appendToEnv(p.param, p.ann, e)) @> ast.params env
         let paramsWithoutTypes = ((p :: Object) => p.param) $ ast.params
-        let paramTypes = ((p :: Object) => p.ann) $ ast.params
+        let paramTypes = ((p :: Object) => 
+            if p.ann.category == "named" && isInEnv(p.ann.name, env) then
+                getFromEnv(p.ann.name, env)
+            else
+                p.ann
+        ) $ ast.params
         let newEnv = appendToEnv("recur", function(paramTypes,narrowest),midEnv)
         let newBody = recur(ast.body, newEnv)
         if newBody.ann.category == "error" then
@@ -413,6 +433,30 @@ let typecheck = (ast :: Object, env :: [Object]) =>
             { type: "object",
               contents: newContents,
               ann: { category: "named", name: "Object" } }
+    else if ast.type == "switch" then
+        let recFunc = recur
+        let expr = recur(ast.expr, env)
+        let cases = ((x :: Object) =>
+            /* TODO if left is just a bare type, then we don't have to do
+             * anything special here. If it is a call, though, we have to 
+             * pull the arguments out and bind them. 
+             *
+             * This more or less requires that we do some desugaring here. 
+             * We have to bind the expr to something as well. */
+            let left = recFunc(x.left, env)
+
+            let right = recFunc(x.right, 
+                                appendToEnv("that", 
+                                            { category: "user-defined",
+                                              fields: left.ann.fields,
+                                              statics: left.ann.statics },
+                                            env))
+            { left: left, right: right }) $ ast.cases
+        { type: "switch",
+          expr: expr,
+          cases: cases,
+          els: { type: "number", value: 0 }, /* TODO should be from user! */
+          ann: unifyList(((x :: Object) => x.right.ann) $ cases) }
     else if ast.type == "type" then
         let recFunc = recur
         let sflds = ((x :: Object) => { identifier: x.identifier,

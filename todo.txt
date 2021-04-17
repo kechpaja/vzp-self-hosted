@@ -40,7 +40,11 @@ useful.
 I don't think we're currently handling multi-level types, where fields in the
 more generic type should also be reflected in the subtype constructors. This
 will have to change in the new typechecker, but for now I think it's better
-punted on. 
+punted on.
+
+Do we need an else case in the switch statement? Probably. That needs to be
+added in the parser. There's also a bunch of stuff to do in typecheck.vzp for
+that, although I'm going to wait for another day. 
 
 
 
