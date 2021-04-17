@@ -13,9 +13,10 @@ let f = (x :: Int64) =>
 
 let d = f(4)
 
-let y = switch d <|
-    cat(lives) -> [lives],
-    dog(trick) -> trick
-|>
+let g = (a :: Animal) =>
+    switch a <|
+        Animal.cat -> [that.lives],
+        Animal.dog -> that.trick
+    |>
 
-print(y)
+print(g(d))

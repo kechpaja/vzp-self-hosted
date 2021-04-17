@@ -87,7 +87,10 @@ let desugar_main = (ast :: Object) =>
                                func: { type: "lookup", identifier: ":" },
                                args: [{ type: "lookup", identifier: "x x" },
                                       { type: "number", value: 0 }] }] },
-              thn: recFunc((cases:0).right),
+              thn: { type: "assignment",
+                     identifier: "that",
+                     value: { type: "lookup", identifier: "x x" },
+                     body: recFunc((cases:0).right) },
               els: recur(restOf(cases), bottom) }
 
         { type: "assignment",
