@@ -1,3 +1,4 @@
+import JsAst
 import defunc
 import utils
 
@@ -7,50 +8,46 @@ let escape = (id :: [Int64]) =>
         if utils.isAlnum(c) then [c] else "_" + utils.itoa(c) + "_"
     "_" + ((+) <@ [] f $ id)
 
-let compile_body_js = (ast :: Object, isBound :: Boolean) =>
-    let recTrue = let rf = recur; (x :: Object) => rf(x, true)
-    let recFalse = let rf = recur; (x :: Object) => rf(x, false)
+let compile_body_js = (ast :: JsAst, isBound :: Boolean) =>
+    let recTrue = let rf = recur; (x :: JsAst) => rf(x, true)
+    let recFalse = let rf = recur; (x :: JsAst) => rf(x, false)
 
     let wrap = (x :: [Int64]) => if isBound then x else "return " + x + ";"
 
     /* Main block */
-    if ast.type == "array" then
-        wrap("[" + utils.join(recTrue $ ast.contents) + "]")
-    else if ast.type == "binop" then
-        if ast.operation == "array+" then
-            wrap(recTrue(ast.left) + ".concat(" + recTrue(ast.right) + ")")
-        else if ast.operation == "/" then
-            wrap("Math.floor(" + recTrue(ast.left) + "/" 
-                               + recTrue(ast.right) + ")")
-        else
-            wrap("(" + recTrue(ast.left) + ast.operation 
-                                         + recTrue(ast.right) + ")")
-    else if ast.type == "call" then
-        wrap(recTrue(ast.func) + "(" + utils.join(recTrue $ ast.args) + ")")
-    else if ast.type == "field_access" then
-        if ast.field == "length" then /* TODO this will not work long term */
-            wrap(recTrue(ast.obj) + ".length")
-        else
-            wrap(recTrue(ast.obj) + "." + escape(ast.field))
-    else if ast.type == "js-conditional" then
-        "if(" + recTrue(ast.cond) + "){" + recFalse(ast.thn) + "}else{"
-                                         + recFalse(ast.els) + "}"
-    else if ast.type == "js-assignment" then
-        "let " + escape(ast.identifier) + "=" + recTrue(ast.value) + ";" 
-                                                + recFalse(ast.body)
-    else if ast.type == "lookup" then
-        wrap(escape(ast.identifier))
-    else if ast.type == "number" then
-        wrap(utils.itoa(ast.value))
-    else if ast.type == "object" then
-        let f = (elem :: Object) => 
-            escape(elem.identifier) + ":" + recTrue(elem.value)
-        wrap("{" + utils.join(f $ ast.contents) + "}")
-    else if ast.type == "unop" then
-        if ast.operation == "unary -" then wrap("(-(" + recTrue(ast.arg) + "))")
-        else wrap("(" + ast.operation + "(" + recTrue(ast.arg) + "))")
-    else
-        "UNKNOWN" + ast.type
+    switch ast <|
+        JsAst.array -> wrap("[" + utils.join(recTrue $ that.contents) + "]"),
+        JsAst.assignment -> "let " + escape(that.identifier) + "="
+            + recTrue(that.value) + ";" + recFalse(that.body),
+        JsAst.binop -> if that.operation == "array+" then
+                wrap(recTrue(that.left) + ".concat(" + recTrue(that.right) +")")
+            else if that.operation == "/" then
+                wrap("Math.floor(" + recTrue(that.left) + "/" 
+                                   + recTrue(that.right) + ")")
+            else 
+                wrap("(" + recTrue(that.left) + that.operation 
+                                              + recTrue(that.right) + ")"),
+        JsAst.call -> wrap(recTrue(that.func) + "("
+                           + utils.join(recTrue $ that.args) + ")"),
+        JsAst.conditional -> "if(" + recTrue(that.cond) + "){" 
+            + recFalse(that.thn) + "}else{" + recFalse(that.els) + "}",
+        JsAst.field_access -> if that.field == "length" then
+                wrap(recTrue(that.obj) + ".length") /* TODO this must change */
+            else
+                wrap(recTrue(that.obj) + "." + escape(that.field)),
+        JsAst.lookup -> wrap(escape(that.identifier)),
+        JsAst.number -> wrap(utils.iloa(that.value)),
+        JsAst.object -> 
+            let f = (elem :: Object) => 
+                escape(elem.identifier) + ":" + recTrue(elem.value)
+            wrap("{" + utils.join(f $ that.contents) + "}")
+
+        JsAst.unop -> if that.operation == "unary -" then 
+                wrap("(-(" + recTrue(that.arg) + "))")
+            else wrap("(" + ast.operation + "(" + recTrue(ast.arg) + "))") 
+    |>
+
+    /* TODO Unknown case in switch? */
 
 let compile_func_js = (func :: Object) =>
     "function " + escape(func.name) + "(" + utils.join(escape $ func.params)

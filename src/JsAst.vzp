@@ -1,0 +1,41 @@
+type <|
+    array {
+        contents :: [self]
+    },
+    assignment {
+        identifier :: [Int64],
+        value :: self,
+        body :: self
+    },
+    binop {
+        operation :: [Int64],
+        left :: self,
+        right :: self
+    },
+    call {
+        func :: self,
+        args :: [self]
+    },
+    conditional {
+        cond :: self,
+        thn :: self,
+        els :: self
+    },
+    field_access {
+        obj :: self,
+        field :: [Int64]
+    },
+    lookup {
+        identifier :: [Int64]
+    },
+    number {
+        value :: Int64
+    },
+    object {
+        contents :: [Object]
+    },
+    unop {
+        operation :: [Int64],
+        arg :: self
+    }
+|>
