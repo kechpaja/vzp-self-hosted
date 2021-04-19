@@ -37,11 +37,9 @@ let compile_body_js = (ast :: JsAst, isBound :: Boolean) =>
                 wrap(recTrue(that.obj) + "." + escape(that.field)),
         JsAst.lookup -> wrap(escape(that.identifier)),
         JsAst.number -> wrap(utils.iloa(that.value)),
-        JsAst.object -> 
-            let f = (elem :: Object) => 
-                escape(elem.identifier) + ":" + recTrue(elem.value)
-            wrap("{" + utils.join(f $ that.contents) + "}")
-
+        JsAst.object -> let f = (elem :: Object) => 
+                            escape(elem.identifier) + ":" + recTrue(elem.value)
+                        wrap("{" + utils.join(f $ that.contents) + "}"),
         JsAst.unop -> if that.operation == "unary -" then 
                 wrap("(-(" + recTrue(that.arg) + "))")
             else wrap("(" + ast.operation + "(" + recTrue(ast.arg) + "))") 
