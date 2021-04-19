@@ -1,0 +1,15 @@
+let T = type <|
+    recursive {
+        field :: self
+    },
+    base {}
+|>
+
+let f = (x :: T) => switch x <|
+    T.recursive -> "recursive " + recur(that.field),
+    T.base -> "base"
+|>
+
+let y = T.recursive(T.base())
+
+print(f(y))

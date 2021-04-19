@@ -459,8 +459,14 @@ let typecheck = (ast :: Object, env :: [Object]) =>
           ann: unifyList(((x :: Object) => x.right.ann) $ cases) }
     else if ast.type == "type" then
         let recFunc = recur
-        let sflds = ((x :: Object) => { identifier: x.identifier,
-                                        value: recFunc(x.value) }) $ ast.statics
+        let sflds = ((x :: Object) => {
+            identifier: x.identifier,
+            value: recFunc(x.value, appendToEnv("self", 
+                                                { category: "type",
+                                                  fields: [],
+                                                  statics: [] },
+                                                env))
+        }) $ ast.statics
         let annflds = ((x :: Object) => { identifier: x.identifier,
                                           value: x.value.ann }) $ sflds
         { type: "type",
