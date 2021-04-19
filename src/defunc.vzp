@@ -176,7 +176,7 @@ let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
 
 (program_as_string :: [Int64]) =>
     let firstStep = defunc_main(transform(program_as_string), [], 0)
-    let addLets = (operation :: [Int64], ast :: Object) =>
+    let addLets = (operation :: [Int64], ast :: JsAst) =>
         JsAst.assignment(
             operation,
             JsAst.object([{ identifier: "f",
