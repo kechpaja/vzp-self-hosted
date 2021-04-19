@@ -44,7 +44,10 @@ punted on.
 
 Do we need an else case in the switch statement? Probably. That needs to be
 added in the parser. There's also a bunch of stuff to do in typecheck.vzp for
-that, although I'm going to wait for another day. 
+that, although I'm going to wait for another day.
+
+Currently, we're doing something wrong when typechecking return types --- we
+get an exception when we should see a type mismatch.  
 
 
 
