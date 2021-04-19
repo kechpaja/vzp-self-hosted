@@ -176,31 +176,24 @@ let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
 
 (program_as_string :: [Int64]) =>
     let firstStep = defunc_main(transform(program_as_string), [], 0)
-    let addLets = (operation :: [Int64], ast :: Object) => 
-        { type: "js-assignment",
-          identifier: operation,
-          value: { type: "object",
-                   contents: [{ identifier: "f",
-                                value: { type: "lookup",
-                                         identifier: "f" + operation } }] },
-          body: ast }
+    let addLets = (operation :: [Int64], ast :: Object) =>
+        JsAst.assignment(
+            operation,
+            JsAst.object([{ identifier: "f",
+                            value: JsAst.lookup("f" + operation) }]),
+            ast
+        ) 
     let generateFuncs = (operation :: [Int64]) =>
         if utils.in(operation, unops) then
             { name: "f" + operation,
               params: [ "f", "x" ],
-              body: { type: "unop",
-                      operation: operation,
-                      arg: { type: "lookup",
-                             identifier: "x" } } }
+              body: JsAst.unop(operation, JsAst.lookup("x")) }
         else
             { name: "f" + operation,
               params: [ "f", "x", "y" ],
-              body: { type: "binop",
-                      operation: operation,
-                      left: { type: "lookup",
-                              identifier: "x" },
-                      right: { type: "lookup",
-                               identifier: "y" } } }
+              body: JsAst.binop(operation, 
+                                JsAst.lookup("x"),
+                                JsAst.lookup("y")) }
     let liftedBuiltins = unique(firstStep.builtins)
     { ast: addLets @> liftedBuiltins firstStep.ast,
       funcs: (generateFuncs $ liftedBuiltins) + firstStep.funcs }
