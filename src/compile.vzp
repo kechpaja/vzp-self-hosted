@@ -42,7 +42,7 @@ let compile_body_js = (ast :: JsAst, isBound :: Boolean) =>
                         wrap("{" + utils.join(f $ that.contents) + "}"),
         JsAst.unop -> if that.operation == "unary -" then 
                 wrap("(-(" + recTrue(that.arg) + "))")
-            else wrap("(" + ast.operation + "(" + recTrue(ast.arg) + "))") 
+            else wrap("(" + that.operation + "(" + recTrue(that.arg) + "))")
     |>
 
     /* TODO Unknown case in switch? */
@@ -53,4 +53,5 @@ let compile_func_js = (func :: Object) =>
 
 (program_as_string :: [Int64]) =>
     let prog = defunc(program_as_string)
-    (+ @> (compile_func_js $ prog.funcs) compile_body_js(prog.ast, false))
+    let f = (a :: [Int64], b :: [Int64]) => a + b
+    (f @> (compile_func_js $ prog.funcs) compile_body_js(prog.ast, false))
