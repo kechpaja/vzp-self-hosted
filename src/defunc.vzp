@@ -143,17 +143,25 @@ let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
             /* Don't need to close over builtins, as they are defined globally.
              * We do need to create primitive closures for them so that they 
              * can be passed intuitively though.*/
-            DefuncWrapper(JsAst.object([{ 
-                                            identifier: "f", 
-                                            value: JsAst.lookup(ast.identifier)
-                                       }]), [], [], [], count)
+            DefuncWrapper(JsAst.object([{ identifier: "f", 
+                                          value: JsAst.lookup(ast.identifier) }]),
+                          [],
+                          [],
+                          [],
+                          count)
         else if utils.in(ast.identifier, unops + binops) then
             /* These builtins can be generated */
-            let bltns = [ast.identifier]
-            DefuncWrapper(JsAst.lookup(ast.identifier), [], [], bltns, count)
+            DefuncWrapper(JsAst.lookup(ast.identifier), 
+                          [],
+                          [],
+                          [ast.identifier],
+                          count)
         else if !utils.in(ast.identifier, env) then
-            let clsr = [ast.identifier]
-            DefuncWrapper(JsAst.lookup(ast.identifier), [], clsr, [], count)
+            DefuncWrapper(JsAst.lookup(ast.identifier),
+                          [],
+                          [ast.identifier],
+                          [],
+                          count)
         else
             DefuncWrapper(JsAst.lookup(ast.identifier), [], [], [], count)
     else
