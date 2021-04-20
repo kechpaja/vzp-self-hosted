@@ -121,7 +121,7 @@ let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
                                                 JsAst.lookup("f"),
                                                 newBody) }] + body.funcs,
                       ((x :: [Int64], list :: [[Int64]]) =>
-                          if utils.in(x, env) then list 
+                          if utils.in(x, env) then list
                                               else [x] + list) @> closureIds [],
                       body.builtins,
                       body.count)
@@ -143,7 +143,7 @@ let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
             /* Don't need to close over builtins, as they are defined globally.
              * We do need to create primitive closures for them so that they 
              * can be passed intuitively though.*/
-            DefuncWrapper(JsAst.object([{ identifier: "f", 
+            DefuncWrapper(JsAst.object([{ identifier: "f",
                                           value: JsAst.lookup(ast.identifier) }]),
                           [],
                           [],
@@ -151,7 +151,7 @@ let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
                           count)
         else if utils.in(ast.identifier, unops + binops) then
             /* These builtins can be generated */
-            DefuncWrapper(JsAst.lookup(ast.identifier), 
+            DefuncWrapper(JsAst.lookup(ast.identifier),
                           [],
                           [],
                           [ast.identifier],
