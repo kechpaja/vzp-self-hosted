@@ -104,7 +104,7 @@ let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
     else if ast.type == "lambda" then
         let body = recur(ast.body, ast.params, count + 1)
         let closureIds = unique(body.closure)
-        let newBody = ((x :: [Int64], inner :: Object) => JsAst.assignment(
+        let newBody = ((x :: [Int64], inner :: JsAst) => JsAst.assignment(
             x,
             JsAst.field_access(JsAst.lookup("f"), x),
             inner
