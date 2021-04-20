@@ -373,8 +373,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
               obj: newObj,          /* ever replace .length */
               field: ast.field,
               ann: int64 }
-        else if !((newObj.ann.category == "named" 
-                    && newObj.ann.name == "Object")
+        else if !(newObj.ann.category == "named"
                   || newObj.ann.category == "dummy") then
             { type: "field_access",
               obj: newObj,
