@@ -233,7 +233,10 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                 { type: "call",
                   func: newFunc,
                   args: newArgs,
-                  ann: { category: "error", name: "type mismatch in @>" } }
+                  ann: { category: "error",
+                         name: "type mismatch in @>: " + stringifyType(one)
+                            + " " + stringifyType(two) + " "
+                            + stringifyType(three) } }
         else if newFunc.type == "lookup" && newFunc.identifier == "<@"
                                          && newArgs.length == 3 then
             let one = (newArgs:0).ann
@@ -251,7 +254,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                 { type: "call",
                   func: newFunc,
                   args: newArgs,
-                  ann: { category: "error", name: "type mismatch in @>" } }
+                  ann: { category: "error", name: "type mismatch in <@" } }
 
         /* TODO */
         /* Allow us to call object fields. Remove when we type object fields. */
