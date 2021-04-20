@@ -391,12 +391,17 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         let midEnv = ((p :: Object, e :: [Object]) => 
                         appendToEnv(p.param, p.ann, e)) @> ast.params env
         let paramsWithoutTypes = ((p :: Object) => p.param) $ ast.params
-        let paramTypes = ((p :: Object) => 
-            if p.ann.category == "named" && isInEnv(p.ann.name, env) then
-                getFromEnv(p.ann.name, env)
+        let paramTypes = ((a :: Object) => 
+            if a.category == "named" && isInEnv(a.name, env) then
+                getFromEnv(a.name, env)
+            else if a.category == "array" then
+                array(recur(a.contents))
+            else if a.category == "function" then
+                function(recur $ a.params, recur(a.return))
+            /* TODO objects */
             else
-                p.ann
-        ) $ ast.params
+                a
+        ) $ (((x :: Object) => x.ann) $ ast.params)
         let newEnv = appendToEnv("recur", function(paramTypes,narrowest),midEnv)
         let newBody = recur(ast.body, newEnv)
         if newBody.ann.category == "error" then
