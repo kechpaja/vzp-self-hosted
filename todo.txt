@@ -78,3 +78,7 @@ thinking of are:
  - Require a comma between the second and third arguments of @> and <@.
 
  - More that I can't think of right now.
+
+
+
+We should probably allow empty objects? Or is that silly?

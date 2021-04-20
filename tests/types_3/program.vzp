@@ -1,0 +1,11 @@
+import to_import
+
+let LongTypeName = type {
+    asdf :: Int64,
+    lkj :: [[Int64]],
+    p :: Object
+}
+
+let x = LongTypeName(5, ["asdf"], { a: 1234 })
+
+print(x.lkj:0)

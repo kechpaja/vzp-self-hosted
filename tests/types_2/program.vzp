@@ -1,0 +1,9 @@
+let LongTypeName = type {
+    asdf :: Int64,
+    lkj :: [Int64],
+    p :: Object
+}
+
+let x = LongTypeName(5, "asdf", { a: 9 })
+
+print(x.lkj)
