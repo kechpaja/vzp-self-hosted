@@ -83,7 +83,9 @@ let unify = (t1 :: Object, t2 :: Object) =>
 
         /* That's a hack for functions. Need to do what we do for arrays. */
     else
-        {category: "error", name: "unrecognized type category: " + t1.category }
+        {category: "error",
+         name: "unrecognized type category: " + t1.category
+                + " occurred with " + stringifyType(t2) }
 
 let unifyList = (list :: [Object]) => unify @> list narrowest
 
