@@ -318,7 +318,11 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                     { type: "call",
                       func: newFunc,
                       args: newArgs,
-                      ann: newFunc.ann.return }
+                      ann: if newFunc.ann.return.category == "type"
+                           then { category: "user-defined",
+                                  fields: newFunc.ann.return.fields,
+                                  statics: newFunc.ann.return.statics }
+                           else newFunc.ann.return }
     else if ast.type == "conditional" then
         let newCond = recur(ast.cond, env)
         let newThn = recur(ast.thn, env)
