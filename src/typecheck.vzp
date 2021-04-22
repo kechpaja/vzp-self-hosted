@@ -397,10 +397,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
               field: ast.field,
               ann: narrowest } /* TODO eventually check types of fields */
     else if ast.type == "lambda" then
-        let midEnv = ((p :: Object, e :: [Object]) => 
-                        appendToEnv(p.param, p.ann, e)) @> ast.params env
-        let paramsWithoutTypes = ((p :: Object) => p.param) $ ast.params
-        let paramTypes = ((a :: Object) => 
+        let f = (a :: Object) => 
             if a.category == "named" && isInEnv(a.name, env) then
                 getFromEnv(a.name, env)
             else if a.category == "array" then
@@ -410,7 +407,11 @@ let typecheck = (ast :: Object, env :: [Object]) =>
             /* TODO objects */
             else
                 a
-        ) $ (((x :: Object) => x.ann) $ ast.params)
+
+        let midEnv = ((p :: Object, e :: [Object]) => 
+                        appendToEnv(p.param, f(p.ann), e)) @> ast.params env
+        let paramsWithoutTypes = ((p :: Object) => p.param) $ ast.params
+        let paramTypes = f $ (((x :: Object) => x.ann) $ ast.params)
         let newEnv = appendToEnv("recur", function(paramTypes,narrowest),midEnv)
         let newBody = recur(ast.body, newEnv)
         if newBody.ann.category == "error" then
