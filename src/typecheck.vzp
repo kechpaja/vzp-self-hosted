@@ -476,11 +476,28 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         }) $ ast.statics
         let annflds = ((x :: Object) => { identifier: x.identifier,
                                           value: x.value.ann }) $ sflds
+        let fieldTypes = ((a :: Object) => 
+            if a.category == "named" && isInEnv(a.name, env) then
+                getFromEnv(a.name, env)
+            else if a.category == "array" then
+                array(recur(a.contents))
+            else if a.category == "function" then
+                function(recur $ a.params, recur(a.return))
+            /* TODO objects */
+            else
+                a
+        ) $ (((x :: Object) => x.ann) $ ast.fields)
+
+        let fieldEntries = if ast.fields.length > 0 then ((i :: Int64) => {
+            param: (ast.fields:i).param,
+            ann: fieldTypes:i
+        }) $ (0..(ast.fields.length-1)) else []
+
         { type: "type",
-          fields: ast.fields,
+          fields: fieldEntries,
           statics: sflds,
           ann: { category: "type",
-                 fields: ast.fields,
+                 fields: fieldEntries,
                  statics: annflds } }
         /* This is a terrible hack, but I can't write the real typechecker
          * without user-defined types, not without tearing out my hair. */
