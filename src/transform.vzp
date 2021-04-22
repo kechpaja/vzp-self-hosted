@@ -70,7 +70,7 @@ let uniqueIds = (astOuter :: Object) =>
             let newEnv = augmentEnv(ast.params, env, count)
             let body = recur(ast.body, newEnv, count + ast.params.length)
             { ast: { type: "lambda",
-                     params: ((x :: Int64) => 
+                     params: ((x :: [Int64]) => 
                                   replaceIfInEnv(x, newEnv)) $ ast.params,
                      body: body.ast },
               count: body.count }

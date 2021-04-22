@@ -127,9 +127,9 @@ let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
                              recur,
                              env,
                              count)
-        let contents = ((i :: Int64) => 
+        let contents = if ast.contents.length > 0 then ((i :: Int64) => 
             { identifier: (ast.contents:i).identifier,
-              value: values.asts:i }) $ 0..(ast.contents.length-1)
+              value: values.asts:i }) $ 0..(ast.contents.length-1) else []
         { ast: JsAst.object(contents),
           funcs: values.funcs,
           closure: values.closure,

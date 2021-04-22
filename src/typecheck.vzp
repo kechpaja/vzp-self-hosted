@@ -22,6 +22,14 @@ let stringifyType = (t :: Object) =>
         "(" + utils.join(recur $ t.params) + ") " + recur(t.return)
     else if t.category == "named" || t.category == "dummy" then
         t.name
+    else if t.category == "type" || t.category == "user-defined" then
+        let recFunc = recur
+        "user-defined (" + t.category + ") - fields: "
+        + ((x :: Object, s :: [Int64]) => 
+            x.param + " :: <" + recFunc(x.ann) + "> " + s) @> t.fields ""
+        + "statics: "
+        + ((x :: Object, s :: [Int64]) => 
+            x.identifier + " :: <stuff> " + s) @> t.statics ""
     else if t.category == "error" then
         "Error: " + t.name
     else
@@ -51,12 +59,12 @@ let unify = (t1 :: Object, t2 :: Object) =>
         { category: "error",
           name: "named types do not match: " + t1.name + ", " + t2.name }
 
-    else if t1.category == "user-defined" || t1.category == "type" then t1
-        /* XXX Needless to say, this doesn't actually check the type. What it
-         * does do is allow us to run programs that are typechecked by hand and
-         * contain switch statements, which will make it much easier to write
-         * the next iteration of the typechecker, which _will_ check the type.*/
-
+    else if t1.category == "user-defined" || t1.category == "type" then 
+        if t1.fields.length == t2.fields.length 
+                && t1.statics.length == t2.statics.length then t1
+        else { category: "error", 
+               name: "arity mismatch: " + stringifyType(t1) + " "
+                                        + stringifyType(t2) }
     else if t1.category == "array" then
         let inner = recur(t1.contents, t2.contents)
         if inner.category == "error" then
