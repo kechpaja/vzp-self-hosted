@@ -6,7 +6,8 @@ let escape = (id :: [Int64]) =>
     if utils.in(id, ["true", "false"]) then id else
     let f = (c :: Int64) => 
         if utils.isAlnum(c) then [c] else "_" + utils.itoa(c) + "_"
-    "_" + ((+) <@ [] f $ id)
+    let g = (a :: [Int64], b :: [Int64]) => a + b
+    "_" + (g <@ [] f $ id)
 
 let compile_body_js = (ast :: JsAst, isBound :: Boolean) =>
     let recTrue = let rf = recur; (x :: JsAst) => rf(x, true)

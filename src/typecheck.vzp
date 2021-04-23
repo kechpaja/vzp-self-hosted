@@ -19,7 +19,7 @@ let stringifyType = (t :: Object) =>
     if t.category == "array" then
         "[" + recur(t.contents) + "]"
     else if t.category == "function" then
-        "(" + utils.join(recur $ t.params) + ") " + recur(t.return)
+        "(" + utils.join(recur $ t.params) + ") -> " + recur(t.return)
     else if t.category == "named" || t.category == "dummy" then
         t.name
     else if t.category == "type" || t.category == "user-defined" then
@@ -242,15 +242,19 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                 { type: "call",
                   func: { type: "lookup",
                           identifier: "array+",
-                          ann: function([array(narrowest), array(narrowest)],
-                                        array(narrowest)) },
+                          ann: function([argsType, argsType], argsType) },
+                  args: newArgs,
+                  ann: argsType }
+            else if argsType.category == "error" then
+                { type: "call",
+                  func: newFunc,
                   args: newArgs,
                   ann: argsType }
             else
                 { type: "call",
                   func: newFunc,
                   args: newArgs,
-                  ann: narrowest }
+                  ann: int64 }
         else if newFunc.type == "lookup" && newFunc.identifier == "$"
                                          && newArgs.length == 2 then
             if (newArgs:0).ann.category == "function" 
@@ -266,7 +270,10 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                 { type: "call",
                   func: newFunc,
                   args: newArgs,
-                  ann: narrowest } /* TODO actually check types here */
+                  ann: { category: "error",
+                         name: "mismatch in $: " + stringifyType(newArgs:0)
+                            + " can't handle contents of " 
+                            + stringifyType(newArgs:1) } }
         else if newFunc.type == "lookup" && newFunc.identifier == ":"
                                          && newArgs.length == 2 then
             if (newArgs:0).ann.category == "array"

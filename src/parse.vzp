@@ -34,7 +34,7 @@ let isNumber = (string :: [Int64]) =>
 let isValidId = (string :: [Int64]) => 
     (string.length > 0)
  && isAlpha(string:0)
- && ((x :: Int64, y :: Int64) => x && (isAlpha(y) || isDigit(y))) 
+ && ((x :: Boolean, y :: Int64) => x && (isAlpha(y) || isDigit(y))) 
                                                     <@ true restOfString(string)
 
 let fail = (error :: [Int64]) =>
@@ -537,7 +537,10 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
                                         {type: "number", value: x}) $ str },
                   rest: restOf(tokens),
                   wellFormed: true }
-        else if isValidId(tokens:0) || utils.in(tokens:0, + <@ [] opsByPrec)then
+        else if isValidId(tokens:0) || utils.in(
+                    tokens:0, 
+                    ((a :: [[Int64]], b :: [[Int64]]) => a + b) <@ [] opsByPrec
+                ) then
             { ast: { type: "lookup",
                      identifier: tokens:0 },
               rest: restOf(tokens),
