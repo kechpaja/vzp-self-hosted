@@ -363,11 +363,28 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
                 else if !checkFor(list.rest, ")") then
                     fail("Problem with param list final )")
                 else if !checkFor(restOf(list.rest), "=>") then
-                    fail("Expected '=>' after param list of function")
+                    if checkFor(restOf(list.rest), "::") then
+                        let returnType = parseTypeAnn(restOf(restOf(list.rest)))
+                        if !returnType.wellFormed then
+                            fail("Bad return type in function")
+                        else if checkFor(returnType.rest, "=>") then
+                            let body = recurWithFullOps(restOf(returnType.rest))
+                            { ast: { type: "lambda",
+                                     params: list.ast,
+                                     body: body.ast,
+                                     returnType: returnType.ann },
+                              rest: body.rest,
+                              wellFormed: true }
+                        else fail("Expected '=>' after return type annotation")
+                    else
+                        fail("Expected '=>' or '::' after params of function")
                 else
                     let body = recurWithFullOps(restOf(restOf(list.rest)))
                     if !body.wellFormed then fail(body.error) else
-                    { ast: { type: "lambda", params: list.ast, body: body.ast },
+                    { ast: { type: "lambda",
+                             params: list.ast,
+                             body: body.ast,
+                             returnType: { category: "dummy", name: "narrowest" } },
                       rest: body.rest,
                       wellFormed: true }
             else
