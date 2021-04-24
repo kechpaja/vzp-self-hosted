@@ -2,14 +2,6 @@ import JsAst
 import transform
 import utils
 
-let DefuncWrapper = type {
-    ast :: JsAst,
-    funcs :: [Object],
-    closure :: [[Int64]],
-    builtins :: [[Int64]],
-    count :: Int64
-}
-
 /* XXX still missing a few things I'm not ready to put straight into JS */
 let binops = [ ">", ">=", "<", "<=", "-", "*", "/", "%", "array+", "||", "&&" ]
 let unops = [ "!", "unary -" ]
@@ -28,22 +20,36 @@ let unique = (list :: [[Int64]]) =>
     else
         [list:0] + rec
 
+let DefuncWrapper = type {
+    ast :: JsAst,
+    funcs :: [Object],
+    closure :: [[Int64]],
+    builtins :: [[Int64]],
+    count :: Int64
+}
+
+let ListRecWrapper = type {
+    asts :: [JsAst],
+    funcs :: [Object],
+    closure :: [[Int64]],
+    builtins :: [[Int64]],
+    count :: Int64
+}
+
 /* TODO closure vars in here */
 let listRec = (list :: [Object],
                f :: (Object, [[Int64]], Int64) DefuncWrapper,
                env :: [[Int64]],
                count :: Int64) =>
-    ((a :: Object, saved :: Object) =>
+    ((a :: Object, saved :: ListRecWrapper) =>
         let handled = f(a, env, saved.count)
-        { asts: [handled.ast] + saved.asts,
-          funcs: handled.funcs + saved.funcs,
-          closure: handled.closure + saved.closure,
-          builtins: handled.builtins + saved.builtins,
-          count: handled.count }) @> list { asts: [],
-                                            funcs: [],
-                                            closure: [],
-                                            builtins: [],
-                                            count: count }
+        ListRecWrapper(
+            [handled.ast] + saved.asts,
+            handled.funcs + saved.funcs,
+            handled.closure + saved.closure,
+            handled.builtins + saved.builtins,
+            handled.count
+        )) @> list ListRecWrapper([], [], [], [], count)
 
 let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
     if ast.type == "array" then
