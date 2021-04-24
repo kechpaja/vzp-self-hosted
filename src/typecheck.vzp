@@ -491,16 +491,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
           ann: unifyList(((x :: Object) => x.right.ann) $ cases) }
     else if ast.type == "type" then
         let recFunc = recur
-        let sflds = ((x :: Object) => {
-            identifier: x.identifier,
-            value: recFunc(x.value, appendToEnv("self", 
-                                                { category: "type",
-                                                  fields: [],
-                                                  statics: [] },
-                                                env))
-        }) $ ast.statics
-        let annflds = ((x :: Object) => { identifier: x.identifier,
-                                          value: x.value.ann }) $ sflds
+
         let fieldTypes = ((a :: Object) => 
             if a.category == "named" && isInEnv(a.name, env) then
                 let ty = getFromEnv(a.name, env)
@@ -523,6 +514,17 @@ let typecheck = (ast :: Object, env :: [Object]) =>
             param: (ast.fields:i).param,
             ann: fieldTypes:i
         }) $ (0..(ast.fields.length-1)) else []
+
+        let sflds = ((x :: Object) => {
+            identifier: x.identifier,
+            value: recFunc(x.value, appendToEnv("self", 
+                                                { category: "type",
+                                                  fields: [],
+                                                  statics: [] },
+                                                env))
+        }) $ ast.statics
+        let annflds = ((x :: Object) => { identifier: x.identifier,
+                                          value: x.value.ann }) $ sflds
 
         { type: "type",
           fields: fieldEntries,
