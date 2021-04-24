@@ -4,4 +4,4 @@ let T = type {
 
 let f = (x :: Int64) => if x > 2 then T(x) else T(recur(x + 1).x)
 
-if f(0).x == 2 then print("asdf") else print("lkj")
+if f(0).x == 3 then print("asdf") else print("lkj")

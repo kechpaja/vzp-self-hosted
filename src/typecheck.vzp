@@ -493,7 +493,11 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         let newEnv = appendToEnv("recur",
                                  function(paramTypes, expectedReturnType),
                                  midEnv)
-        let newBody = recur(ast.body, newEnv)
+        let oldNewBody = recur(ast.body, newEnv)
+        let newBody = recur(
+            ast.body,
+            appendToEnv("recur", function(paramTypes, oldNewBody.ann), midEnv)
+        )
         let returnType = unify(expectedReturnType, newBody.ann)
         if returnType.category == "error" then
             { type: "lambda",
