@@ -1,0 +1,11 @@
+let T = type {
+    x :: Int64
+}
+
+let f = (func :: (Int64) T) => func(7)
+
+let g = (i :: Int64) => T(i)
+
+let result = f(g)
+
+print(if result.x == 7 then "passed" else "failed")
