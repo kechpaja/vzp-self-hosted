@@ -493,7 +493,13 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                                           value: x.value.ann }) $ sflds
         let fieldTypes = ((a :: Object) => 
             if a.category == "named" && isInEnv(a.name, env) then
-                getFromEnv(a.name, env)
+                let ty = getFromEnv(a.name, env)
+                if ty.category == "type" then
+                    { category: "user-defined",
+                      fields: ty.fields,
+                      statics: ty.statics }
+                else
+                    ty
             else if a.category == "array" then
                 array(recur(a.contents))
             else if a.category == "function" then

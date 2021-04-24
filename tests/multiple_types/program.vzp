@@ -1,0 +1,9 @@
+let T = type {
+    x :: [Int64]
+}
+
+let U = type {
+    y :: T
+}
+
+print(U(T("passed")).y.x)
