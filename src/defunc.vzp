@@ -9,7 +9,7 @@ let unops = [ "!", "unary -" ]
 let corefuncs = [ "==", "!=", "+", "$", "@>", "<@", "print", ":", "..", "ref=" ]
 let builtins = corefuncs + unops + binops
 
-let unique = (list :: [[Int64]]) =>
+let unique = (list :: [[Int64]]) :: [[Int64]] =>
     if list.length == 0 then [] else
     if list.length == 1 then
         if utils.in(list:0, ["true", "false", "recur"]) then [] else list
@@ -40,8 +40,8 @@ let ListRecWrapper = type {
 let listRec = (list :: [Object],
                f :: (Object, [[Int64]], Int64) DefuncWrapper,
                env :: [[Int64]],
-               count :: Int64) =>
-    ((a :: Object, saved :: ListRecWrapper) =>
+               count :: Int64) :: ListRecWrapper =>
+    ((a :: Object, saved :: ListRecWrapper) :: ListRecWrapper =>
         let handled = f(a, env, saved.count)
         ListRecWrapper(
             [handled.ast] + saved.asts,
@@ -51,7 +51,9 @@ let listRec = (list :: [Object],
             handled.count
         )) @> list ListRecWrapper([], [], [], [], count)
 
-let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
+let defunc_main = (ast :: Object,
+                   env :: [[Int64]],
+                   count :: Int64) :: DefuncWrapper =>
     if ast.type == "array" then
         let results = listRec(ast.contents, recur, env, count)
         DefuncWrapper(JsAst.array(results.asts),
@@ -63,7 +65,9 @@ let defunc_main = (ast :: Object, env :: [[Int64]], count :: Int64) =>
         let args = listRec(ast.args, recur, env, count)
         if args.asts.length == 2 && ast.func.type == "lookup"
                                  && utils.in(ast.func.identifier, binops) then
-            DefuncWrapper(JsAst.binop(ast.func.identifier, args.asts:0, args.asts:1),
+            DefuncWrapper(JsAst.binop(ast.func.identifier,
+                                      args.asts:0,
+                                      args.asts:1),
                           args.funcs,
                           args.closure,
                           args.builtins,
