@@ -420,18 +420,22 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                         appendToEnv(p.param, f(p.ann), e)) @> ast.params env
         let paramsWithoutTypes = ((p :: Object) => p.param) $ ast.params
         let paramTypes = f $ (((x :: Object) => x.ann) $ ast.params)
-        let newEnv = appendToEnv("recur", function(paramTypes,narrowest),midEnv)
+        let expectedReturnType = f(ast.returnType)
+        let newEnv = appendToEnv("recur",
+                                 function(paramTypes, expectedReturnType),
+                                 midEnv)
         let newBody = recur(ast.body, newEnv)
-        if newBody.ann.category == "error" then
+        let returnType = unify(expectedReturnType, newBody.ann)
+        if returnType.category == "error" then
             { type: "lambda",
               params: paramsWithoutTypes,
               body: newBody,
-              ann: newBody.ann }
+              ann: returnType }
         else
             { type: "lambda",
               params: paramsWithoutTypes,
               body: newBody,
-              ann: function(paramTypes, newBody.ann) }
+              ann: function(paramTypes, returnType) }
     else if ast.type == "lookup" then
         { type: "lookup",
           identifier: ast.identifier,

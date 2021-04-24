@@ -351,7 +351,10 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
                                   && ((tokens:2) == "=>") then
                 let body = recurWithFullOps(tokens:(3..(tokens.length-1)))
                 if !body.wellFormed then fail(body.error) else
-                { ast: { type: "lambda", params: [], body: body.ast },
+                { ast: { type: "lambda",
+                         params: [],
+                         returnType: { category: "dummy", name: "narrowest" },
+                         body: body.ast },
                   rest: body.rest,
                   wellFormed: true }
             else if (tokens.length >= 4) && isValidId(tokens:1) 
