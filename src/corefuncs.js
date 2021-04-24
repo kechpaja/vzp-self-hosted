@@ -65,7 +65,7 @@ function __43_(closure, left, right) {
 /* $ */
 function __36_(closure, left, right) {
     if (!Array.isArray(right)) {
-        throw "Not an array: " + JSON.stringify(right) " (also got " + JSON.stringify(left) ")";
+        throw "Not an array: " + JSON.stringify(right) + " (also got " + JSON.stringify(left) + ")";
     }
 
     return right.map(x => left._f(left, x));
