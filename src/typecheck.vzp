@@ -24,7 +24,7 @@ let stringifyType = (t :: Object) =>
         t.name
     else if t.category == "type" || t.category == "user-defined" then
         let recFunc = recur
-        "user-defined (" + t.category + ") - fields: "
+        t.category + " - fields: "
         + ((x :: Object, s :: [Int64]) => 
             x.param + " :: <" + recFunc(x.ann) + "> " + s) @> t.fields ""
         + "statics: <|"
@@ -35,8 +35,7 @@ let stringifyType = (t :: Object) =>
     else
         "UNKNOWNTYPE(" + t.category + ")" /*"" + t*/
 
-/* TODO when we introduce user-defined types, this will get more complex
- * Also, for now we handle objects as just named types, and don't look inside.
+/* TODO For now we handle objects as just named types, and don't look inside.
  * But eventually we're going to have to look inside. We will also need to 
  * eventually distinguish between unifying to the most general and unifying to
  * the most specific type. */
@@ -45,10 +44,6 @@ let unify = (t1 :: Object, t2 :: Object) =>
     else if t2.category == "error" then t2
     else if t1.category == "dummy" && t1.name == "narrowest" then t2
     else if t2.category == "dummy" && t2.name == "narrowest" then t1
-
-    /* TODO these need to actually check membership! */
-    else if t1.category == "user-defined" && t2.category == "type" then t2
-    else if t1.category == "type" && t2.category == "user-defined" then t1
 
     else if t1.category != t2.category then 
         { category: "error",
@@ -59,16 +54,12 @@ let unify = (t1 :: Object, t2 :: Object) =>
         { category: "error",
           name: "named types do not match: " + t1.name + ", " + t2.name }
 
-    else if t1.category == "user-defined" || t1.category == "type" then 
-        /*if t1.fields.length == t2.fields.length 
-                && t1.statics.length == t2.statics.length then t1
-        else { category: "error", 
-               name: "arity mismatch: " + stringifyType(t1) + " "
-                                        + stringifyType(t2) }*/
-        t1
-
-        /* TODO this doesn't check types. Eventually it should, but for now
-         * we should let them be until we re-write this. */
+    else if t1.category == "user-defined" then
+        if t1.id == t2.id then t1 else {
+            category: "error",
+            name: "User-defined type mismatch: { " + stringifyType(t1)
+                                     + " } and { " + stringifyType(t2) + " }"
+        }
     else if t1.category == "array" then
         let inner = recur(t1.contents, t2.contents)
         if inner.category == "error" then
@@ -282,6 +273,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
               func: newFunc,
               args: newArgs,
               ann: { category: "user-defined",
+                     id: newFunc.ann.id,
                      fields: newFunc.ann.fields,
                      statics: newFunc.ann.statics } } /* TODO check args */
         else if newFunc.ann.category == "error" then
@@ -324,6 +316,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                       args: newArgs,
                       ann: if newFunc.ann.return.category == "type"
                            then { category: "user-defined",
+                                  id: newFunc.ann.return.id,
                                   fields: newFunc.ann.return.fields,
                                   statics: newFunc.ann.return.statics }
                            else newFunc.ann.return }
@@ -410,6 +403,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                 let ty = getFromEnv(a.name, env)
                 if ty.category == "type" then
                     { category: "user-defined",
+                      id: ty.id,
                       fields: ty.fields,
                       statics: ty.statics }
                 else
@@ -480,6 +474,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
             let right = recFunc(x.right, 
                                 appendToEnv("that", 
                                             { category: "user-defined",
+                                              id: left.ann.id,
                                               fields: left.ann.fields,
                                               statics: left.ann.statics },
                                             env))
@@ -490,50 +485,55 @@ let typecheck = (ast :: Object, env :: [Object]) =>
           els: { type: "number", value: 0 }, /* TODO should be from user! */
           ann: unifyList(((x :: Object) => x.right.ann) $ cases) }
     else if ast.type == "type" then
-        let recFunc = recur
+        let id = ENV.unique()
 
-        let fieldTypes = ((a :: Object) => 
-            if a.category == "named" && isInEnv(a.name, env) then
-                let ty = getFromEnv(a.name, env)
-                if ty.category == "type" then
-                    { category: "user-defined",
-                      fields: ty.fields,
-                      statics: ty.statics }
+        ((typeAst :: Object, envv :: [Object]) => 
+            let recFunc = recur
+            let fieldTypes = ((a :: Object) => 
+                if a.category == "named" && isInEnv(a.name, envv) then
+                    let ty = getFromEnv(a.name, envv)
+                    if ty.category == "type" then
+                        { category: "user-defined",
+                          id: ty.id,
+                          fields: ty.fields,
+                          statics: ty.statics }
+                    else
+                        ty
+                else if a.category == "array" then
+                    array(recur(a.contents))
+                else if a.category == "function" then
+                    function(recur $ a.params, recur(a.return))
+                /* TODO objects */
                 else
-                    ty
-            else if a.category == "array" then
-                array(recur(a.contents))
-            else if a.category == "function" then
-                function(recur $ a.params, recur(a.return))
-            /* TODO objects */
-            else
-                a
-        ) $ (((x :: Object) => x.ann) $ ast.fields)
+                    a
+            ) $ (((x :: Object) => x.ann) $ typeAst.fields)
 
-        let fieldEntries = if ast.fields.length > 0 then ((i :: Int64) => {
-            param: (ast.fields:i).param,
-            ann: fieldTypes:i
-        }) $ (0..(ast.fields.length-1)) else []
+            let fieldEntries = if typeAst.fields.length > 0 then 
+                    ((i :: Int64) => {
+                        param: (typeAst.fields:i).param,
+                        ann: fieldTypes:i
+                    }) $ (0..(typeAst.fields.length-1)) 
+                else []
 
-        let sflds = ((x :: Object) => {
-            identifier: x.identifier,
-            value: recFunc(x.value, appendToEnv("self", 
-                                                { category: "type",
-                                                  fields: [],
-                                                  statics: [] },
-                                                env))
-        }) $ ast.statics
-        let annflds = ((x :: Object) => { identifier: x.identifier,
-                                          value: x.value.ann }) $ sflds
+            let sflds = ((x :: Object) => {
+                identifier: x.identifier,
+                value: recFunc(x.value, appendToEnv("self", 
+                                                    { category: "type",
+                                                      id: id,
+                                                      fields: fieldEntries,
+                                                      statics: [] },
+                                                    envv))
+            }) $ typeAst.statics
+            let annflds = ((x :: Object) => { identifier: x.identifier,
+                                              value: x.value.ann }) $ sflds
 
-        { type: "type",
-          fields: fieldEntries,
-          statics: sflds,
-          ann: { category: "type",
-                 fields: fieldEntries,
-                 statics: annflds } }
-        /* This is a terrible hack, but I can't write the real typechecker
-         * without user-defined types, not without tearing out my hair. */
+            { type: "type",
+              fields: fieldEntries,
+              statics: sflds,
+              ann: { category: "type",
+                     id: id,
+                     fields: fieldEntries,
+                     statics: annflds } })(ast, env)
     else
         let asfd = print(ast)
         ast
