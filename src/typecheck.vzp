@@ -27,9 +27,9 @@ let stringifyType = (t :: Object) =>
         "user-defined (" + t.category + ") - fields: "
         + ((x :: Object, s :: [Int64]) => 
             x.param + " :: <" + recFunc(x.ann) + "> " + s) @> t.fields ""
-        + "statics: "
+        + "statics: <|"
         + ((x :: Object, s :: [Int64]) => 
-            x.identifier + " :: <stuff> " + s) @> t.statics ""
+            x.identifier + " :: <stuff> " + s) @> t.statics "|>"
     else if t.category == "error" then
         "Error: " + t.name
     else
@@ -60,11 +60,15 @@ let unify = (t1 :: Object, t2 :: Object) =>
           name: "named types do not match: " + t1.name + ", " + t2.name }
 
     else if t1.category == "user-defined" || t1.category == "type" then 
-        if t1.fields.length == t2.fields.length 
+        /*if t1.fields.length == t2.fields.length 
                 && t1.statics.length == t2.statics.length then t1
         else { category: "error", 
                name: "arity mismatch: " + stringifyType(t1) + " "
-                                        + stringifyType(t2) }
+                                        + stringifyType(t2) }*/
+        t1
+
+        /* TODO this doesn't check types. Eventually it should, but for now
+         * we should let them be until we re-write this. */
     else if t1.category == "array" then
         let inner = recur(t1.contents, t2.contents)
         if inner.category == "error" then
