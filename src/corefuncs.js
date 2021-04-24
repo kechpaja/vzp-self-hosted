@@ -145,7 +145,16 @@ const _ENV = {
     /* XXX This assumes node */
     _argv:  process.argv.splice(1).map(function (s) {
         return s.split("").map(function (x) { return x.codePointAt(); });
-    })
+    }),
+    _unique: {
+        _f: (function () {
+            let x = 0;
+            return function (closure) {
+                x = x + 1;
+                return x;
+            };
+        })()
+    }
 }
 
 /* IO functions */

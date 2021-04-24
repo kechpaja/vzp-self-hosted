@@ -1,0 +1,1 @@
+print(((x :: Int64) => x + 48) $ [ENV.unique(), ENV.unique(), ENV.unique()])
