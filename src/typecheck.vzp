@@ -130,6 +130,12 @@ let typecheck = (ast :: Object, env :: [Object]) =>
           body: newBody,
           ann: newBody.ann }
     else if ast.type == "call" then
+        if ast.func.type == "call" && ast.func.func.type == "lookup"
+            && ast.func.func.identifier == "~" && ast.func.args.length == 2 then
+            recur({ type: "call",
+                    func: ast.func.args:1,
+                    args: [ast.func.args:0] + ast.args }, env)
+        else
         let newFunc = recur(ast.func, env)
         let newArgs = recWithSameEnv $ ast.args
         let argTypes = ((x :: Object) => x.ann) $ newArgs

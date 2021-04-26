@@ -21,7 +21,7 @@ let opsByPrec = [ [ "||" ], /* Lowest to highest */
                   [ "$", "@>", "<@" ],
                   [ ":"  ],
                   [ ".." ],
-                  [ ".", "(" ] ]
+                  [ ".", "(", "~" ] ]
 
 let isDigit = (c :: Int64) => c <= 57 && c >= 48
 
@@ -178,7 +178,7 @@ let parseObjectInternalList = (tokens :: [[Int64]],
 
 let parseDotsAndCalls = (expr :: Object,
                          tokens :: [[Int64]],
-                         mutualRecParse :: ([[Int64]]) Object) =>
+                         mutualRecParse :: ([[[Int64]]], [[Int64]]) Object) =>
     if tokens.length > 0 && (tokens:0) == "." then
         if (tokens.length < 2) || (!isValidId(tokens:1)) then
             fail("Not a valid field lookup")
@@ -187,12 +187,21 @@ let parseDotsAndCalls = (expr :: Object,
             recur(next, restOf(restOf(tokens)), mutualRecParse)
         /* TODO consider handling decimal numbers here? */
     else if tokens.length > 0 && (tokens:0) == "(" then
-        let list = parseArgList(restOf(tokens), mutualRecParse)
+        let list = parseArgList(
+            restOf(tokens),
+            (x :: [[Int64]]) => mutualRecParse(opsByPrec, x)
+        )
         if !list.wellFormed || !checkFor(list.rest, ")") then
             fail("Issue parsing argument list in call")
         else
             let next = { type: "call", func: expr, args: list.ast }
             recur(next, restOf(list.rest), mutualRecParse)
+    else if tokens.length > 0 && (tokens:0) == "~" then
+        let otherArg = mutualRecParse([], restOf(tokens))
+        let next = { type: "call",
+                     func: { type: "lookup", identifier: "~" },
+                     args: [expr, otherArg.ast] }
+        recur(next, otherArg.rest, mutualRecParse)
     else
         { ast: expr, rest: tokens, wellFormed: true }
 
@@ -439,8 +448,8 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
         if !left.wellFormed then fail(left.error) else
         if left.rest.length == 0 || !utils.in(left.rest:0, operations:0) then
             left
-        else if utils.in(left.rest:0, [".", "("]) then
-            parseDotsAndCalls(left.ast, left.rest, recurWithFullOps)
+        else if utils.in(left.rest:0, [".", "(", "~"]) then
+            parseDotsAndCalls(left.ast, left.rest, recur)
         else
             let right = recur(operations, restOf(left.rest))
             if !right.wellFormed then fail(right.error) else
