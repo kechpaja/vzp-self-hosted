@@ -1,0 +1,5 @@
+let f = (x :: Int64, y :: Int64) => y + x
+
+let g = 47 ~ f
+
+print([g(1)])
