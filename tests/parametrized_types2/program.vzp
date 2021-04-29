@@ -1,0 +1,19 @@
+let TestType = type</T/> {
+    x :: T
+}
+
+let OtherType = type <|
+    a {
+        t :: TestType</self/>
+    },
+    b {
+        i :: [Int64]
+    }
+|>
+
+let value = OtherType.a(TestType(OtherType.b("6")))
+
+print(switch value.t.x <|
+    OtherType.a -> "asdf",
+    OtherType.b -> that.i
+|>)

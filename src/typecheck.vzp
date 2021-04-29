@@ -117,7 +117,10 @@ let subs = (tast :: Object, env :: [Object]) =>
           id: ty.id,
           fields: ((x :: Object) => { param: x.param,
                                       ann: recFunc(x.ann, e) }) $ ty.fields,
-          statics: ty.statics,
+          statics: ((x :: Object) => {
+              identifier: x.identifier,
+              value: recFunc(x.value, e)
+          }) $ ty.statics,
           params: ty.params }
         /* TODO this is probably broken, but we tried. */
     else if tast.category == "user-defined" || tast.category == "type" then
@@ -125,7 +128,10 @@ let subs = (tast :: Object, env :: [Object]) =>
           id: tast.id,
           fields: ((x :: Object) => { param: x.param,
                                       ann: recFunc(x.ann, env) }) $ tast.fields,
-          statics: tast.statics,
+          statics: ((x :: Object) => {
+              identifier: x.identifier,
+              value: recFunc(x.value, env)
+          }) $ tast.statics,
           params: tast.params }
     else if tast.category == "array" then
         array(recur(tast.contents, env))
@@ -443,7 +449,11 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                 { type: "field_access",
                   obj: newObj,
                   field: ast.field,
-                  ann: { category: "error", name: "No field '" + ast.field } }
+                  ann: { category: "error",
+                         name: "No field '" + ast.field + "' in "
+                          + ((x :: Object, y :: [Int64]) => 
+                                x.param + ": " + stringifyType(x.ann) + ", " + y
+                            ) @> newObj.ann.fields "" } }
             else
                 { type: "field_access",
                   obj: newObj,

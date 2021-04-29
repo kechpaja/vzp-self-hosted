@@ -58,7 +58,8 @@ let parseTypeAnn = (tokens :: [[Int64]]) =>
             let ann = recFunc(tokens)
             if !ann.wellFormed then { wellFormed: false } else
             if checkFor(ann.rest, ",") || checkFor(ann.rest, ")") 
-                                       || checkFor(ann.rest, "]") then
+                                       || checkFor(ann.rest, "]")
+                                       || checkFor(ann.rest, "/>") then
                 let recurOn = if ann.rest:0 == "," then restOf(ann.rest)
                                                    else ann.rest
                 let laterAnns = recur(recurOn)
