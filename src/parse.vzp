@@ -21,7 +21,7 @@ let opsByPrec = [ [ "||" ], /* Lowest to highest */
                   [ "$", "@>", "<@" ],
                   [ ":"  ],
                   [ ".." ],
-                  [ ".", "(", "~" ] ]
+                  [ ".", "(", "~", "</" ] ]
 
 let isDigit = (c :: Int64) => c <= 57 && c >= 48
 
@@ -51,7 +51,8 @@ let noFollowingExpr = (tokens :: [[Int64]]) =>
 let parseTypeAnn = (tokens :: [[Int64]]) =>
     let recFunc = recur
     let parseTypeAnnList = (tokens :: [[Int64]]) =>
-        if checkFor(tokens, ")") || checkFor(tokens, "]") then
+        if checkFor(tokens, ")") || checkFor(tokens, "]") 
+                                 || checkFor(tokens, "/>") then
             { ann: [], rest: tokens, wellFormed: true }
         else
             let ann = recFunc(tokens)
@@ -71,10 +72,22 @@ let parseTypeAnn = (tokens :: [[Int64]]) =>
     /* TODO this will get longer when we add objects, hashes, sets (tuples?) */
     if tokens.length < 1 then { wellFormed: false } else
     if isValidId(tokens:0) then 
-        { ann: { category: "named",
-                 name: tokens:0 },
-          rest: restOf(tokens), 
-          wellFormed: true }
+        if tokens.length > 1 && checkFor(restOf(tokens), "</") then
+            let innards = parseTypeAnnList(restOf(restOf(tokens)))
+            if !innards.wellFormed || !checkFor(innards.rest, "/>") then
+                { wellFormed: false }
+            else
+                { ann: { category: "named",
+                         name: tokens:0,
+                         args: innards.ann },
+                  rest: restOf(innards.rest),
+                  wellFormed: true }
+        else
+            { ann: { category: "named",
+                     name: tokens:0,
+                     args: [] },
+              rest: restOf(tokens), 
+              wellFormed: true }
     else if checkFor(tokens, "(") then
         let list = parseTypeAnnList(restOf(tokens))
         if !list.wellFormed || list.rest.length < 1 || !checkFor(list.rest, ")")
@@ -179,6 +192,7 @@ let parseObjectInternalList = (tokens :: [[Int64]],
 let parseDotsAndCalls = (expr :: Object,
                          tokens :: [[Int64]],
                          mutualRecParse :: ([[[Int64]]], [[Int64]]) Object) =>
+    let defaultCase = { ast: expr, rest: tokens, wellFormed: true }
     if tokens.length > 0 && (tokens:0) == "." then
         if (tokens.length < 2) || (!isValidId(tokens:1)) then
             fail("Not a valid field lookup")
@@ -202,8 +216,29 @@ let parseDotsAndCalls = (expr :: Object,
                      func: { type: "lookup", identifier: "~" },
                      args: [expr, otherArg.ast] }
         recur(next, otherArg.rest, mutualRecParse)
+    else if tokens.length > 0 && (tokens:0) == "</" then
+        let results = ((tkns :: [[Int64]]) =>
+            if tkns.length > 0 && tkns:0 == "/>" then
+                { ast: [], rest: restOf(tkns), wellFormed: true }
+            else
+                let ann = parseTypeAnn(tkns)
+                if !ann.wellFormed then fail("") else
+                if checkFor(ann.rest, ",") then
+                    let recurred = recur(restOf(ann.rest))
+                    if recurred.wellFormed then
+                        { ast: [ann.ann] + recurred.ast,
+                          rest: recurred.rest,
+                          wellFormed: true }
+                    else fail("")
+                else if checkFor(ann.rest, "/>") then
+                    { ast: [ann.ann], rest: restOf(ann.rest), wellFormed: true }
+                else fail("")
+        )(restOf(tokens))
+        if !results.wellFormed then defaultCase else
+        let next = { type: "parametrized", expr: expr, types: results.ast }
+        recur(next, results.rest, mutualRecParse)
     else
-        { ast: expr, rest: tokens, wellFormed: true }
+        defaultCase
 
 let parseTypeDef = (tokens :: [[Int64]]) =>
     let recFunc = recur
@@ -231,14 +266,76 @@ let parseTypeDef = (tokens :: [[Int64]]) =>
         else
             fail("Some problem parsing statics list: " + tkns:0)
 
-    if tokens:0 == "{" then
+    let handleParams = (tkns :: [[Int64]]) =>
+        if tkns.length == 0 then
+            fail("Problem parsing type params list")
+        else if tkns:0 == "/>" then
+            { ast: [], rest: restOf(tkns), wellFormed: true }
+        else if isValidId(tkns:0) then
+            if checkFor(restOf(tkns), ",") then
+                let remaining = recur(restOf(restOf(tkns)))
+                if !remaining.wellFormed then fail("Type params list") else
+                { ast: [tkns:0] + remaining.ast,
+                  rest: remaining.rest,
+                  wellFormed: true }
+            else if checkFor(restOf(tkns), "/>") then
+                { ast: [tkns:0], rest: restOf(restOf(tkns)), wellFormed: true }
+            else
+                fail("Reached end of type params list but no '/>'!")
+        else
+            fail("Some problem parsing type params list")
+
+    if tokens:0 == "</" then
+        let params = handleParams(restOf(tokens))
+        if !params.wellFormed then fail(params.error) else
+        if checkFor(params.rest, "{") then
+            let fields = parseParamList(restOf(params.rest))
+            if !fields.wellFormed then fail("Error in param'ed type fields")
+            else if !checkFor(fields.rest, "}") then
+                fail("Missing '}' in type definition")
+            else if !checkFor(restOf(fields.rest), "<|") then
+                { ast: { type: "type",
+                         fields: fields.ast,
+                         statics: [],
+                         params: params.ast },
+                  rest: restOf(fields.rest),
+                  wellFormed: true }
+            else
+                let statics = handleStatics(restOf(restOf(fields.rest)))
+                if !statics.wellFormed then fail("Error parsing type statics")
+                else
+                    { ast: { type: "type",
+                             fields: fields.ast,
+                             statics: statics.ast,
+                             params: params.ast },
+                      rest: statics.rest,
+                      wellFormed: true }
+        else if !checkFor(params.rest, "<|") then
+            { ast: { type: "type",
+                     fields: [],
+                     statics: [],
+                     params: params.ast },
+              rest: params.rest,
+              wellFormed: true }
+        else
+            let statics = handleStatics(restOf(params.rest))
+            if !statics.wellFormed then fail("Error parsing type statics") else
+            { ast: { type: "type",
+                     fields: [],
+                     statics: statics.ast,
+                     params: params.ast },
+              rest: statics.rest,
+              wellFormed: true }
+    else if tokens:0 == "{" then
         let fields = parseParamList(restOf(tokens))
-        if !checkFor(fields.rest, "}") then
+        if !fields.wellFormed then fail("Error in unparam'ed type fields")
+        else if !checkFor(fields.rest, "}") then
             fail("Missing '}' in type definition")
         else if !checkFor(restOf(fields.rest), "<|") then
             { ast: { type: "type",
                      fields: fields.ast,
-                     statics: [] },
+                     statics: [],
+                     params: [] },
               rest: restOf(fields.rest),
               wellFormed: true }
         else
@@ -246,7 +343,8 @@ let parseTypeDef = (tokens :: [[Int64]]) =>
             if !statics.wellFormed then fail("Error parsing type statics") else
             { ast: { type: "type",
                      fields: fields.ast,
-                     statics: statics.ast },
+                     statics: statics.ast,
+                     params: [] },
               rest: statics.rest,
               wellFormed: true }
     else if tokens:0 == "<|" then
@@ -254,13 +352,15 @@ let parseTypeDef = (tokens :: [[Int64]]) =>
         if !statics.wellFormed then fail("Error parsing type statics") else
         { ast: { type: "type",
                  fields: [],
-                 statics: statics.ast },
+                 statics: statics.ast,
+                 params: [] },
           rest: statics.rest,
           wellFormed: true }
     else
         { ast: { type: "type", /* We do allow a type with no fields */
                  fields: [],
-                 statics: [] },
+                 statics: [],
+                 params: [] },
           rest: tokens,
           wellFormed: true }
 
@@ -329,7 +429,8 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
                 let value = recur(opsByPrec, tokens:(3..(tokens.length-1)))
                 if !value.wellFormed then fail(value.error) else
                 if !checkFor(value.rest, ";") then
-                    fail("Missing semicolon or newline after value of 'let'")
+                    fail("Missing semicolon or newline after value of 'let',"
+                         + " got '" + value.rest:0 + "' instead.")
                 else
                     let body = recur(opsByPrec, restOf(value.rest))
                     if !body.wellFormed then fail(body.error) else
@@ -448,7 +549,7 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
         if !left.wellFormed then fail(left.error) else
         if left.rest.length == 0 || !utils.in(left.rest:0, operations:0) then
             left
-        else if utils.in(left.rest:0, [".", "(", "~"]) then
+        else if utils.in(left.rest:0, [".", "(", "~", "</"]) then
             parseDotsAndCalls(left.ast, left.rest, recur)
         else
             let right = recur(operations, restOf(left.rest))

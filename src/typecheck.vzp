@@ -7,9 +7,9 @@ let restOf = (list :: [Object]) =>
 
 /* Stuff related to types themselves */
 let narrowest = { category: "dummy", name: "narrowest" } /* Unifies w/ x as x */
-let int64 = { category: "named", name: "Int64" }
-let boolean = { category: "named", name: "Boolean" }
-let object = { category: "named", name: "Object" }
+let int64 = { category: "named", name: "Int64", args: [] }
+let boolean = { category: "named", name: "Boolean", args: [] }
+let object = { category: "named", name: "Object", args: [] }
 
 let array = (x :: Object) => { category: "array", contents: x }
 let function = (ps :: [Object], r :: Object) =>
@@ -101,6 +101,38 @@ let isInEnv = (id :: [Int64], env :: [Object]) =>
     if env == [] then false else
     if (env:0).id == id then true else recur(id, restOf(env))
 
+
+let subs = (tast :: Object, env :: [Object]) =>
+    let recFunc = recur
+    let recWithSameEnv = (a :: Object) => recFunc(a, env)
+    if tast.category == "named" && isInEnv(tast.name, env) then
+        let ty = getFromEnv(tast.name, env)
+        if ty.category != "type" && ty.category != "user-defined" then ty else
+        let e = if ty.params.length == 0 then env else 
+            ((i :: Int64, nv :: [Object]) =>
+                appendToEnv(ty.params:i, recWithSameEnv(tast.args:i), nv)
+            ) @> 0..(ty.params.length-1) env
+
+        { category: "user-defined",
+          id: ty.id,
+          fields: ((x :: Object) => { param: x.param,
+                                      ann: recFunc(x.ann, e) }) $ ty.fields,
+          statics: ty.statics,
+          params: ty.params }
+        /* TODO this is probably broken, but we tried. */
+    else if tast.category == "user-defined" || tast.category == "type" then
+        { category: "user-defined",
+          id: tast.id,
+          fields: ((x :: Object) => { param: x.param,
+                                      ann: recFunc(x.ann, env) }) $ tast.fields,
+          statics: tast.statics,
+          params: tast.params }
+    else if tast.category == "array" then
+        array(recur(tast.contents, env))
+    else if tast.category == "function" then
+        function(recWithSameEnv $ tast.params, recWithSameEnv(tast.return))
+    else /* TODO objects? */
+        tast
 
 /* Returns a new AST with annotations */
 let typecheck = (ast :: Object, env :: [Object]) =>
@@ -316,17 +348,13 @@ let typecheck = (ast :: Object, env :: [Object]) =>
               ann: { category: "user-defined",
                      id: newFunc.ann.id,
                      fields: newFunc.ann.fields,
-                     statics: newFunc.ann.statics } } /* TODO check args */
+                     statics: newFunc.ann.statics,
+                     params: newFunc.ann.params } } /* TODO check args */
         else if newFunc.ann.category == "error" then
             { type: "call",
               func: newFunc,
               args: newArgs,
               ann: newFunc.ann }
-       /* else if unifyList(argTypes).category == "error" then
-            { type: "call",
-              func: newFunc,
-              args: newArgs,
-              ann: unifyList(argTypes) }*/
         else
             let recFunc = recur
             /* This assumes that the lists are the same length */
@@ -359,7 +387,8 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                            then { category: "user-defined",
                                   id: newFunc.ann.return.id,
                                   fields: newFunc.ann.return.fields,
-                                  statics: newFunc.ann.return.statics }
+                                  statics: newFunc.ann.return.statics,
+                                  params: newFunc.ann.return.params }
                            else newFunc.ann.return }
     else if ast.type == "conditional" then
         let newCond = recur(ast.cond, env)
@@ -439,29 +468,11 @@ let typecheck = (ast :: Object, env :: [Object]) =>
               field: ast.field,
               ann: narrowest } /* TODO eventually check types of fields */
     else if ast.type == "lambda" then
-        let f = (a :: Object) => 
-            if a.category == "named" && isInEnv(a.name, env) then
-                let ty = getFromEnv(a.name, env)
-                if ty.category == "type" then
-                    { category: "user-defined",
-                      id: ty.id,
-                      fields: ty.fields,
-                      statics: ty.statics }
-                else
-                    ty
-            else if a.category == "array" then
-                array(recur(a.contents))
-            else if a.category == "function" then
-                function(recur $ a.params, recur(a.return))
-            /* TODO objects */
-            else
-                a
-
         let midEnv = ((p :: Object, e :: [Object]) => 
-                        appendToEnv(p.param, f(p.ann), e)) @> ast.params env
+            appendToEnv(p.param, subs(p.ann, env), e)) @> ast.params env
         let paramsWithoutTypes = ((p :: Object) => p.param) $ ast.params
-        let paramTypes = f $ (((x :: Object) => x.ann) $ ast.params)
-        let expectedReturnType = f(ast.returnType)
+        let paramTypes = ((x :: Object) => subs(x.ann, env)) $ ast.params
+        let expectedReturnType = subs(ast.returnType, env)
         let newEnv = appendToEnv("recur",
                                  function(paramTypes, expectedReturnType),
                                  midEnv)
@@ -503,7 +514,39 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         else
             { type: "object",
               contents: newContents,
-              ann: { category: "named", name: "Object" } }
+              ann: object }
+    else if ast.type == "parametrized" then
+        let expr = recur(ast.expr, env)
+        let args = ((x :: Object) => subs(x, env)) $ ast.types
+
+        /* TODO look for unbounds and things like that */
+        if expr.ann.category != "type" then
+            { type: "type",
+              ann: { category: "error", name: "Bad parametrized type" } }
+        else if expr.ann.params.length != args.length then
+            { type: "type",
+              ann: { category: "error", name: "Arity mismatch, param'd type" } }
+        else if args.length == 0 then
+            expr
+        else
+            let newEnv = ((x :: Int64, e :: [Object]) => 
+                appendToEnv(expr.ann.params:x, args:x, e)
+            ) @> (0..(args.length-1)) env
+
+            let ann = subs(expr.ann, newEnv)
+            let newAnn = { category: "type",
+                           id: ann.id,
+                           fields: ann.fields,
+                           statics: ann.statics,
+                           params: ann.params }
+            if expr.type == "lookup" then
+                { type: "lookup",
+                  identifier: expr.identifier,
+                  ann: newAnn }
+            else
+                { type: "type",
+                  statics: expr.ann.statics, /* TODO remove these? */
+                  ann: newAnn }
     else if ast.type == "switch" then
         let recFunc = recur
         let expr = recur(ast.expr, env)
@@ -521,7 +564,8 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                                             { category: "user-defined",
                                               id: left.ann.id,
                                               fields: left.ann.fields,
-                                              statics: left.ann.statics },
+                                              statics: left.ann.statics,
+                                              params: left.ann.params },
                                             env))
             { left: left, right: right }) $ ast.cases
         { type: "switch",
@@ -535,22 +579,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         ((typeAst :: Object, envv :: [Object]) => 
             let recFunc = recur
             let fieldTypes = ((a :: Object) => 
-                if a.category == "named" && isInEnv(a.name, envv) then
-                    let ty = getFromEnv(a.name, envv)
-                    if ty.category == "type" then
-                        { category: "user-defined",
-                          id: ty.id,
-                          fields: ty.fields,
-                          statics: ty.statics }
-                    else
-                        ty
-                else if a.category == "array" then
-                    array(recur(a.contents))
-                else if a.category == "function" then
-                    function(recur $ a.params, recur(a.return))
-                /* TODO objects */
-                else
-                    a
+                subs(a, envv)
             ) $ (((x :: Object) => x.ann) $ typeAst.fields)
 
             let fieldEntries = if typeAst.fields.length > 0 then 
@@ -566,19 +595,20 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                                                     { category: "type",
                                                       id: id,
                                                       fields: fieldEntries,
-                                                      statics: [] },
+                                                      statics: [],
+                                                      params: [] },
                                                     envv))
             }) $ typeAst.statics
             let annflds = ((x :: Object) => { identifier: x.identifier,
                                               value: x.value.ann }) $ sflds
 
             { type: "type",
-              fields: fieldEntries,
               statics: sflds,
               ann: { category: "type",
                      id: id,
                      fields: fieldEntries,
-                     statics: annflds } })(ast, env)
+                     statics: annflds,
+                     params: ast.params } })(ast, env)
     else
         let asfd = print(ast)
         ast

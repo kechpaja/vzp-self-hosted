@@ -1,0 +1,12 @@
+let TestType = type {
+    x :: [Int64]
+}
+
+let ParametrizedType = type</T, U/> {
+    t :: T,
+    u :: U
+}
+
+let value = ParametrizedType</TestType, Int64/>(TestType("string"), 8)
+
+print(value.t.x + [value.u + 48])
