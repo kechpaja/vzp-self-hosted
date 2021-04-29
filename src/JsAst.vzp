@@ -1,3 +1,5 @@
+import IdValuePair
+
 type <|
     array {
         contents :: [self]
@@ -32,7 +34,7 @@ type <|
         value :: Int64
     },
     object {
-        contents :: [Object]
+        contents :: [IdValuePair</self/>]
     },
     unop {
         operation :: [Int64],

@@ -1,0 +1,7 @@
+import JsAst
+
+type {
+    name :: [Int64],
+    params :: [[Int64]],
+    body :: JsAst
+}

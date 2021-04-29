@@ -254,7 +254,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                 { type: "call",
                   func: newFunc,
                   args: newArgs,
-                  ann: int64 }
+                  ann: narrowest }
         else if newFunc.type == "lookup" && newFunc.identifier == "$"
                                          && newArgs.length == 2 then
             if (newArgs:0).ann.category == "function" 

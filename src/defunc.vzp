@@ -1,3 +1,5 @@
+import FunctionWrapper
+import IdValuePair
 import JsAst
 import transform
 import utils
@@ -22,7 +24,7 @@ let unique = (list :: [[Int64]]) :: [[Int64]] =>
 
 let DefuncWrapper = type {
     ast :: JsAst,
-    funcs :: [Object],
+    funcs :: [FunctionWrapper],
     closure :: [[Int64]],
     builtins :: [[Int64]],
     count :: Int64
@@ -30,7 +32,7 @@ let DefuncWrapper = type {
 
 let ListRecWrapper = type {
     asts :: [JsAst],
-    funcs :: [Object],
+    funcs :: [FunctionWrapper],
     closure :: [[Int64]],
     builtins :: [[Int64]],
     count :: Int64
@@ -120,16 +122,16 @@ let defunc_main = (ast :: Object,
             inner
         )) @> closureIds body.ast
         let closure = ((x :: [Int64]) => 
-                            { identifier: x,
-                              value: JsAst.lookup(x) }) $ closureIds
-        let funcPair = [{ identifier: "f",
-                          value: JsAst.lookup("f" + utils.itoa(count)) }]
+                        IdValuePair</JsAst/>(x, JsAst.lookup(x))) $ closureIds
+        let funcPair = [
+            IdValuePair</JsAst/>("f", JsAst.lookup("f" + utils.itoa(count)))
+        ]
         DefuncWrapper(JsAst.object(closure + funcPair),
-                      [{ name: "f" + utils.itoa(count),
-                         params: ["f"] + ast.params,
-                         body: JsAst.assignment("recur",
-                                                JsAst.lookup("f"),
-                                                newBody) }] + body.funcs,
+                      [FunctionWrapper("f" + utils.itoa(count),
+                                       ["f"] + ast.params,
+                                       JsAst.assignment("recur",
+                                                        JsAst.lookup("f"),
+                                                        newBody))] + body.funcs,
                       ((x :: [Int64], list :: [[Int64]]) =>
                           if utils.in(x, env) then list
                                               else [x] + list) @> closureIds [],
@@ -140,9 +142,9 @@ let defunc_main = (ast :: Object,
                              recur,
                              env,
                              count)
-        let contents = if ast.contents.length > 0 then ((i :: Int64) => 
-            { identifier: (ast.contents:i).identifier,
-              value: values.asts:i }) $ 0..(ast.contents.length-1) else []
+        let contents = if ast.contents.length == 0 then [] else ((i :: Int64) =>
+            IdValuePair</JsAst/>((ast.contents:i).identifier,
+                                 values.asts:i)) $ 0..(ast.contents.length-1)
         DefuncWrapper(JsAst.object(contents),
                       values.funcs,
                       values.closure,
@@ -153,12 +155,10 @@ let defunc_main = (ast :: Object,
             /* Don't need to close over builtins, as they are defined globally.
              * We do need to create primitive closures for them so that they 
              * can be passed intuitively though.*/
-            DefuncWrapper(JsAst.object([{ identifier: "f",
-                                          value: JsAst.lookup(ast.identifier) }]),
-                          [],
-                          [],
-                          [],
-                          count)
+            let obj = JsAst.object([
+                IdValuePair</JsAst/>("f", JsAst.lookup(ast.identifier))
+            ])
+            DefuncWrapper(obj, [], [], [], count)
         else if utils.in(ast.identifier, unops + binops) then
             /* These builtins can be generated */
             DefuncWrapper(JsAst.lookup(ast.identifier),
@@ -178,27 +178,32 @@ let defunc_main = (ast :: Object,
         /* No other cases can contain functions. XXX should be a number. */
         DefuncWrapper(JsAst.number(ast.value), [], [], [], count)
 
+let DefuncedProgram = type {
+    ast :: JsAst,
+    funcs :: [FunctionWrapper]
+}
 
 (program_as_string :: [Int64]) =>
     let firstStep = defunc_main(transform(program_as_string), [], 0)
     let addLets = (operation :: [Int64], ast :: JsAst) =>
         JsAst.assignment(
             operation,
-            JsAst.object([{ identifier: "f",
-                            value: JsAst.lookup("f" + operation) }]),
+            JsAst.object([
+                IdValuePair</JsAst/>("f", JsAst.lookup("f" + operation))
+            ]),
             ast
         ) 
     let generateFuncs = (operation :: [Int64]) =>
         if utils.in(operation, unops) then
-            { name: "f" + operation,
-              params: [ "f", "x" ],
-              body: JsAst.unop(operation, JsAst.lookup("x")) }
+            FunctionWrapper("f" + operation,
+                            [ "f", "x" ],
+                            JsAst.unop(operation, JsAst.lookup("x")))
         else
-            { name: "f" + operation,
-              params: [ "f", "x", "y" ],
-              body: JsAst.binop(operation, 
-                                JsAst.lookup("x"),
-                                JsAst.lookup("y")) }
+            FunctionWrapper("f" + operation,
+                            [ "f", "x", "y" ],
+                            JsAst.binop(operation, 
+                                        JsAst.lookup("x"),
+                                        JsAst.lookup("y")))
     let liftedBuiltins = unique(firstStep.builtins)
-    { ast: addLets @> liftedBuiltins firstStep.ast,
-      funcs: (generateFuncs $ liftedBuiltins) + firstStep.funcs }
+    DefuncedProgram(addLets @> liftedBuiltins firstStep.ast,
+                    (generateFuncs $ liftedBuiltins) + firstStep.funcs)

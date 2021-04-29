@@ -1,3 +1,5 @@
+import FunctionWrapper
+import IdValuePair
 import JsAst
 import defunc
 import utils
@@ -38,7 +40,7 @@ let compile_body_js = (ast :: JsAst, isBound :: Boolean) =>
                 wrap(recTrue(that.obj) + "." + escape(that.field)),
         JsAst.lookup -> wrap(escape(that.identifier)),
         JsAst.number -> wrap(utils.itoa(that.value)),
-        JsAst.object -> let f = (elem :: Object) => 
+        JsAst.object -> let f = (elem :: IdValuePair</JsAst/>) => 
                             escape(elem.identifier) + ":" + recTrue(elem.value)
                         wrap("{" + utils.join(f $ that.contents) + "}"),
         JsAst.unop -> if that.operation == "unary -" then 
@@ -48,7 +50,7 @@ let compile_body_js = (ast :: JsAst, isBound :: Boolean) =>
 
     /* TODO Unknown case in switch? */
 
-let compile_func_js = (func :: Object) =>
+let compile_func_js = (func :: FunctionWrapper) =>
     "function " + escape(func.name) + "(" + utils.join(escape $ func.params)
                 + "){" + compile_body_js(func.body, false) + "}"
 
