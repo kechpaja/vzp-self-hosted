@@ -533,7 +533,7 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
             else
                 let str = (tokens:0):(1..((tokens:0).length-2))
                 { ast: { type: "array",
-                         contents: ((x :: Object) =>
+                         contents: ((x :: Int64) =>
                                         {type: "number", value: x}) $ str },
                   rest: restOf(tokens),
                   wellFormed: true }
@@ -652,14 +652,17 @@ let loadProgramAndImports = (module :: [Int64]) =>
             if !recResult.wellFormed then
                 recResult
             else
-                { modules: recResult.modules + loadedModules.modules,
+                let paths = ((x :: Object) => x.path) $ recResult.modules
+                { modules: recResult.modules
+                    + (((m :: Object, list :: [Object]) => 
+                        if utils.in(m.path, paths) then list else [m] + list) 
+                            @> loadedModules.modules []),
                   wellFormed: true }
 
     let resolvedModules = ((x :: [Int64]) => 
                                 resolveModule(module, x)) $ program.modules
 
     let results = (f @> resolvedModules { modules: [], wellFormed: true })
-    /*if !(&& @> (((x :: Object) => x.wellFormed) $ results) true) then*/
     if !results.wellFormed then
         results
     else

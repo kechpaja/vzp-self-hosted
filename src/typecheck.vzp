@@ -24,7 +24,9 @@ let stringifyType = (t :: Object) =>
         t.name
     else if t.category == "type" || t.category == "user-defined" then
         let recFunc = recur
-        t.category + " - fields: "
+        t.category + (if t.category == "user-defined" 
+                      then "(" + utils.itoa(t.id) + ")" 
+                      else "") + " - fields: "
         + ((x :: Object, s :: [Int64]) => 
             x.param + " :: <" + recFunc(x.ann) + "> " + s) @> t.fields ""
         + "statics: <|"
@@ -259,9 +261,10 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                                          && newArgs.length == 2 then
             if (newArgs:0).ann.category == "function" 
                     && (newArgs:0).ann.params.length == 1
-                    && (newArgs:1).ann.category == "array"
-                    && unify((newArgs:0).ann.params:0,
-                             (newArgs:1).ann.contents).category != "error" then
+                    && (((newArgs:1).ann.category == "array"
+                        && unify((newArgs:0).ann.params:0,
+                                 (newArgs:1).ann.contents).category != "error")
+                        || (newArgs:1).ann.category == "dummy") then
                 { type: "call",
                   func: newFunc,
                   args: newArgs,
@@ -271,9 +274,9 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   func: newFunc,
                   args: newArgs,
                   ann: { category: "error",
-                         name: "mismatch in $: " + stringifyType(newArgs:0)
+                         name: "mismatch in $: " + stringifyType((newArgs:0).ann)
                             + " can't handle contents of " 
-                            + stringifyType(newArgs:1) } }
+                            + stringifyType((newArgs:1).ann) } }
         else if newFunc.type == "lookup" && newFunc.identifier == ":"
                                          && newArgs.length == 2 then
             if (newArgs:0).ann.category == "array"
