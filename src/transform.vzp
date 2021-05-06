@@ -1,3 +1,5 @@
+import IdValuePair
+import TransformedAst
 import desugar
 import utils
 
@@ -91,57 +93,59 @@ let uniqueIds = (astOuter :: Object) =>
         else
             { ast: ast, count: count })(astOuter, [], 0).ast
 
-let transform_main = (ast :: Object, binder :: (Object) Object) =>
+let idfunc = (x :: TransformedAst) => x
+
+let transform_main = (ast :: Object,
+                      binder :: (TransformedAst) TransformedAst) =>
     let recFunc = recur
-    let doList = (f :: (Object, (Object) Object) Object,
+    let doList = (f :: (Object, (TransformedAst) TransformedAst) TransformedAst,
                   list :: [Object],
-                  new :: [Object],
-                  b :: ([Object]) Object) =>
+                  new :: [TransformedAst],
+                  b :: ([TransformedAst]) TransformedAst) =>
         if list == [] then b(new) else
         let innerRec = recur
-        f(list:0, (x :: Object) => innerRec(f, restOf(list), new + [x], b))
+        f(list:0,
+          (x :: TransformedAst) => innerRec(f, restOf(list), new + [x], b))
 
     if ast.type == "array" then
-        doList(recur, ast.contents, [], (x :: [Object]) => binder({ type: "array",
-                                                             contents: x }))
+        doList(recur,
+               ast.contents,
+               [],
+               (x :: [TransformedAst]) => binder(TransformedAst.array(x)))
     else if ast.type == "assignment" then
         let body = recur(ast.body, binder)
-        recur(ast.value, (x :: Object) => { type: "js-assignment", 
-                                            identifier: ast.identifier,
-                                            value: x,
-                                            body: body })
+        recur(ast.value, (x :: TransformedAst) =>
+                            TransformedAst.assignment(ast.identifier, x, body))
     else if ast.type == "call" then
-        recur(ast.func, 
-              (func :: Object) => doList(recFunc,
-                                         ast.args,
-                                         [],
-                                         (args :: [Object]) => binder({ type: "call",
-                                                                 func: func,
-                                                                 args: args })))
+        recur(ast.func, (func :: TransformedAst) => doList(
+            recFunc,
+            ast.args,
+            [],
+            (args :: [TransformedAst]) => binder(TransformedAst.call(func,args))
+        ))
     else if ast.type == "conditional" then
         let thn = recur(ast.thn, binder)
         let els = recur(ast.els, binder)
-        recur(ast.cond, (x :: Object) => { type: "js-conditional",
-                                           cond: x,
-                                           thn: thn,
-                                           els: els })
+        recur(ast.cond, (x :: TransformedAst) => 
+                            TransformedAst.conditional(x, thn, els))
     else if ast.type == "field_access" then
-        recur(ast.obj, (x :: Object) => binder({ type: "field_access", 
-                                          obj: x,
-                                          field: ast.field }))
+        recur(ast.obj, (x :: TransformedAst) =>
+                            binder(TransformedAst.field_access(x, ast.field)))
     else if ast.type == "lambda" then
-        binder({ type: "lambda", 
-                 params: ast.params,
-                 body: recur(ast.body, (x :: Object) => x) })
-    else if ast.type == "object" then
-        let f = (pair :: Object, b :: (Object) Object) =>
-            recFunc(pair.value, 
-                    (x :: Object) => b({ identifier: pair.identifier,
-                                         value: x }))
-        doList(f, ast.contents, [], (x :: Object) => binder({ type: "object",
-                                                              contents: x }))
-    else
-        binder(ast)
+        binder(TransformedAst.lambda(ast.params, recur(ast.body, idfunc)))
+    else if ast.type == "lookup" then
+        binder(TransformedAst.lookup(ast.identifier))
+    else if ast.type == "number" then
+        binder(TransformedAst.number(ast.value))
+    else /* Has to be an object if we get here */
+        let f = (pair :: Object,
+                 b :: (TransformedAst) TransformedAst) => recFunc(
+            pair.value, 
+            (x :: TransformedAst) => 
+                b(IdValuePair</TransformedAst/>(pair.identifier, x))
+        )
+        doList(f, ast.contents, [], (x :: TransformedAst) => 
+                                        binder(TransformedAst.object(x)))
 
 (program_as_string :: [Int64]) =>
-    transform_main(uniqueIds(desugar(program_as_string)), (x :: Object) => x)
+    transform_main(uniqueIds(desugar(program_as_string)), (x :: TransformedAst) => x)

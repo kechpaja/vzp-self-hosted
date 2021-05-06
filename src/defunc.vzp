@@ -1,6 +1,7 @@
 import FunctionWrapper
 import IdValuePair
 import JsAst
+import TransformedAst
 import transform
 import utils
 
@@ -39,11 +40,11 @@ let ListRecWrapper = type {
 }
 
 /* TODO closure vars in here */
-let listRec = (list :: [Object],
-               f :: (Object, [[Int64]], Int64) DefuncWrapper,
+let listRec = (list :: [TransformedAst],
+               f :: (TransformedAst, [[Int64]], Int64) DefuncWrapper,
                env :: [[Int64]],
                count :: Int64) :: ListRecWrapper =>
-    ((a :: Object, saved :: ListRecWrapper) :: ListRecWrapper =>
+    ((a :: TransformedAst, saved :: ListRecWrapper) :: ListRecWrapper =>
         let handled = f(a, env, saved.count)
         ListRecWrapper(
             [handled.ast] + saved.asts,
@@ -53,130 +54,142 @@ let listRec = (list :: [Object],
             handled.count
         )) @> list ListRecWrapper([], [], [], [], count)
 
-let defunc_main = (ast :: Object,
+let defunc_main = (ast :: TransformedAst,
                    env :: [[Int64]],
                    count :: Int64) :: DefuncWrapper =>
-    if ast.type == "array" then
-        let results = listRec(ast.contents, recur, env, count)
-        DefuncWrapper(JsAst.array(results.asts),
-                      results.funcs,
-                      results.closure,
-                      results.builtins,
-                      results.count)
-    else if ast.type == "call" then
-        let args = listRec(ast.args, recur, env, count)
-        if args.asts.length == 2 && ast.func.type == "lookup"
-                                 && utils.in(ast.func.identifier, binops) then
-            DefuncWrapper(JsAst.binop(ast.func.identifier,
-                                      args.asts:0,
-                                      args.asts:1),
-                          args.funcs,
-                          args.closure,
-                          args.builtins,
-                          args.count)
-        else if args.asts.length == 1 && ast.func.type == "lookup"
-                                    && utils.in(ast.func.identifier, unops) then
-            DefuncWrapper(JsAst.unop(ast.func.identifier, args.asts:0),
-                          args.funcs,
-                          args.closure,
-                          args.builtins,
-                          args.count)
-        else
-            let func = recur(ast.func, env, args.count)
-            DefuncWrapper(JsAst.call(JsAst.field_access(func.ast, "f"),
-                                     [func.ast] + args.asts),
-                          func.funcs + args.funcs,
-                          func.closure + args.closure,
-                          func.builtins + args.builtins,
-                          func.count)
-    else if ast.type == "field_access" then
-        let obj = recur(ast.obj, env, count)
-        DefuncWrapper(JsAst.field_access(obj.ast, ast.field),
-                      obj.funcs,
-                      obj.closure,
-                      obj.builtins,
-                      obj.count)
-    else if ast.type == "js-assignment" then
-        let value = recur(ast.value, env, count)
-        let body = recur(ast.body, [ast.identifier] + env, value.count)
-        DefuncWrapper(JsAst.assignment(ast.identifier, value.ast, body.ast),
-                      value.funcs + body.funcs,
-                      value.closure + body.closure,
-                      value.builtins + body.builtins,
-                      body.count)
-    else if ast.type == "js-conditional" then
-        let cond = recur(ast.cond, env, count)
-        let thn = recur(ast.thn, env, cond.count)
-        let els = recur(ast.els, env, thn.count)
-        DefuncWrapper(JsAst.conditional(cond.ast, thn.ast, els.ast),
-                      cond.funcs + thn.funcs + els.funcs,
-                      cond.closure + thn.closure + els.closure,
-                      cond.builtins + thn.builtins + els.builtins,
-                      els.count)
-    else if ast.type == "lambda" then
-        let body = recur(ast.body, ast.params, count + 1)
-        let closureIds = unique(body.closure)
-        let newBody = ((x :: [Int64], inner :: JsAst) => JsAst.assignment(
-            x,
-            JsAst.field_access(JsAst.lookup("f"), x),
-            inner
-        )) @> closureIds body.ast
-        let closure = ((x :: [Int64]) => 
-                        IdValuePair</JsAst/>(x, JsAst.lookup(x))) $ closureIds
-        let funcPair = [
-            IdValuePair</JsAst/>("f", JsAst.lookup("f" + utils.itoa(count)))
-        ]
-        DefuncWrapper(JsAst.object(closure + funcPair),
-                      [FunctionWrapper("f" + utils.itoa(count),
-                                       ["f"] + ast.params,
-                                       JsAst.assignment("recur",
-                                                        JsAst.lookup("f"),
-                                                        newBody))] + body.funcs,
-                      ((x :: [Int64], list :: [[Int64]]) =>
-                          if utils.in(x, env) then list
-                                              else [x] + list) @> closureIds [],
-                      body.builtins,
-                      body.count)
-    else if ast.type == "object" then
-        let values = listRec(((x :: Object) => x.value) $ ast.contents,
-                             recur,
-                             env,
-                             count)
-        let contents = if ast.contents.length == 0 then [] else ((i :: Int64) =>
-            IdValuePair</JsAst/>((ast.contents:i).identifier,
-                                 values.asts:i)) $ 0..(ast.contents.length-1)
-        DefuncWrapper(JsAst.object(contents),
-                      values.funcs,
-                      values.closure,
-                      values.builtins,
-                      values.count)
-    else if ast.type == "lookup" then
-        if utils.in(ast.identifier, corefuncs) then
-            /* Don't need to close over builtins, as they are defined globally.
-             * We do need to create primitive closures for them so that they 
-             * can be passed intuitively though.*/
-            let obj = JsAst.object([
-                IdValuePair</JsAst/>("f", JsAst.lookup(ast.identifier))
-            ])
-            DefuncWrapper(obj, [], [], [], count)
-        else if utils.in(ast.identifier, unops + binops) then
-            /* These builtins can be generated */
-            DefuncWrapper(JsAst.lookup(ast.identifier),
-                          [],
-                          [],
-                          [ast.identifier],
-                          count)
-        else if !utils.in(ast.identifier, env) then
-            DefuncWrapper(JsAst.lookup(ast.identifier),
-                          [],
-                          [ast.identifier],
-                          [],
-                          count)
-        else
-            DefuncWrapper(JsAst.lookup(ast.identifier), [], [], [], count)
-    else
-        /* No other cases can contain functions. XXX should be a number. */
-        DefuncWrapper(JsAst.number(ast.value), [], [], [], count)
+    switch ast <|
+        TransformedAst.array ->
+            let results = listRec(that.contents, recur, env, count)
+            DefuncWrapper(JsAst.array(results.asts),
+                          results.funcs,
+                          results.closure,
+                          results.builtins,
+                          results.count),
+        TransformedAst.assignment ->
+            let id = that.identifier
+            let value = recur(that.value, env, count)
+            let body = recur(that.body, [id] + env, value.count)
+            DefuncWrapper(JsAst.assignment(id, value.ast, body.ast),
+                          value.funcs + body.funcs,
+                          value.closure + body.closure,
+                          value.builtins + body.builtins,
+                          body.count),
+        TransformedAst.call ->
+            let args = listRec(that.args, recur, env, count)
+            let recFunc = recur
+            let elseFunc = () =>
+                let func = recFunc(that.func, env, args.count)
+                DefuncWrapper(JsAst.call(JsAst.field_access(func.ast, "f"),
+                                         [func.ast] + args.asts),
+                              func.funcs + args.funcs,
+                              func.closure + args.closure,
+                              func.builtins + args.builtins,
+                              func.count)
+
+            switch that.func <|
+                TransformedAst.array -> elseFunc(),
+                TransformedAst.assignment -> elseFunc(),
+                TransformedAst.call -> elseFunc(),
+                TransformedAst.conditional -> elseFunc(),
+                TransformedAst.field_access -> elseFunc(),
+                TransformedAst.lambda -> elseFunc(),
+                TransformedAst.lookup -> if args.asts.length == 2
+                                      && utils.in(that.identifier, binops) then
+                        DefuncWrapper(JsAst.binop(that.identifier,
+                                                  args.asts:0,
+                                                  args.asts:1),
+                                      args.funcs,
+                                      args.closure,
+                                      args.builtins,
+                                      args.count)
+                    else if args.asts.length == 1 
+                                && utils.in(that.identifier, unops) then
+                        DefuncWrapper(JsAst.unop(that.identifier,
+                                                 args.asts:0),
+                                      args.funcs,
+                                      args.closure,
+                                      args.builtins,
+                                      args.count)
+                    else elseFunc(),
+                TransformedAst.number -> elseFunc(),
+                TransformedAst.object -> elseFunc()
+            |>,
+        TransformedAst.conditional ->
+            let cond = recur(that.cond, env, count)
+            let thn = recur(that.thn, env, cond.count)
+            let els = recur(that.els, env, thn.count)
+            DefuncWrapper(JsAst.conditional(cond.ast, thn.ast, els.ast),
+                          cond.funcs + thn.funcs + els.funcs,
+                          cond.closure + thn.closure + els.closure,
+                          cond.builtins + thn.builtins + els.builtins,
+                          els.count),
+        TransformedAst.field_access ->
+            let obj = recur(that.obj, env, count)
+            DefuncWrapper(JsAst.field_access(obj.ast, that.field),
+                          obj.funcs,
+                          obj.closure,
+                          obj.builtins,
+                          obj.count),
+        TransformedAst.lambda ->
+            let body = recur(that.body, that.params, count + 1)
+            let closureIds = unique(body.closure)
+            let newBody = ((x :: [Int64], inner :: JsAst) => JsAst.assignment(
+                x,
+                JsAst.field_access(JsAst.lookup("f"), x),
+                inner
+            )) @> closureIds body.ast
+            let closure = ((x :: [Int64]) => IdValuePair</JsAst/>(
+                x,
+                JsAst.lookup(x)
+            )) $ closureIds
+            let funcid = "f" + utils.itoa(count)
+            let funcPair = [IdValuePair</JsAst/>("f", JsAst.lookup(funcid))]
+            DefuncWrapper(JsAst.object(closure + funcPair),
+                          [FunctionWrapper(
+                              funcid,
+                              ["f"] + that.params,
+                              JsAst.assignment("recur",
+                                               JsAst.lookup("f"),
+                                               newBody)
+                          )] + body.funcs,
+                          ((x :: [Int64], list :: [[Int64]]) =>
+                              if utils.in(x, env) then list else [x] + list
+                          ) @> closureIds [],
+                          body.builtins,
+                          body.count),
+        TransformedAst.lookup ->
+            let id = that.identifier 
+            if utils.in(id, corefuncs) then
+                /* Don't need to close over builtins, as they are defined globally.
+                 * We do need to create primitive closures for them so that they 
+                 * can be passed intuitively though.*/
+                let obj = JsAst.object([
+                    IdValuePair</JsAst/>("f", JsAst.lookup(id))
+                ])
+                DefuncWrapper(obj, [], [], [], count)
+            else if utils.in(id, unops + binops) then
+                /* These builtins can be generated */
+                DefuncWrapper(JsAst.lookup(id), [], [], [id], count)
+            else if !utils.in(id, env) then
+                DefuncWrapper(JsAst.lookup(id), [], [id], [], count)
+            else
+                DefuncWrapper(JsAst.lookup(id), [], [], [], count),
+        TransformedAst.number ->
+            DefuncWrapper(JsAst.number(that.value), [], [], [], count),
+        TransformedAst.object ->
+            let f = (x :: IdValuePair</TransformedAst/>) => x.value
+            let values = listRec(f $ that.contents, recur, env, count)
+            let contents = if that.contents.length == 0 then [] else
+                ((i :: Int64) => IdValuePair</JsAst/>(
+                    (that.contents:i).identifier,
+                    values.asts:i
+                )) $ 0..(that.contents.length - 1)
+            DefuncWrapper(JsAst.object(contents),
+                          values.funcs,
+                          values.closure,
+                          values.builtins,
+                          values.count)
+    |>
 
 let DefuncedProgram = type {
     ast :: JsAst,
