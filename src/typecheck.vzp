@@ -257,6 +257,23 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   func: newFunc,
                   args: newArgs,
                   ann: narrowest }
+        else if newFunc.type == "lookup" && newFunc.identifier == "++"
+                                         && newArgs.length == 2 then
+            let argsType = unify((newArgs:0).ann, (newArgs:1).ann)
+            if argsType.category == "array" then
+                { type: "call",
+                  func: { type: "lookup",
+                          identifier: "array+",
+                          ann: function([argsType, argsType], argsType) },
+                  args: newArgs,
+                  ann: argsType }
+            else
+                { type: "call",
+                  func: newFunc,
+                  args: newArgs,
+                  ann: { category: "error",
+                         name: "Non-array as arg to ++: "
+                            + stringifyType(argsType) } }
         else if newFunc.type == "lookup" && newFunc.identifier == "$"
                                          && newArgs.length == 2 then
             if (newArgs:0).ann.category == "function" 

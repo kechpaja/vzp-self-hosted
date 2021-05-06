@@ -24,7 +24,7 @@ let charsGoTogether = (a :: [Int64], b :: Int64) =>
      || (a == "|" && b == 124) || (a == "&" && b == 38)
      || (a == "." && b == 46) || (a == "/" && b == 42)
      || (a == "|" && b == 62) || (a == "<" && b == 124)
-     || (a == "-" && b == 62)
+     || (a == "-" && b == 62) || (a == "+" && b == 43)
      || (a == "<" && b == 47) || (a == "/" && b == 62)
      || (if a.length >= 2 then (a:(0..1)) == "/*"
                        && (a:((a.length-2)..(a.length-1))) !="*/" else false)
@@ -54,8 +54,8 @@ let simplifyToken = (t :: [Int64]) => if isEOL(t:0) then ";" else t
 
 /* Stuff for removing unnecessary tokens */
 let mergeKeywords = ["==", "!=", "<", "<=", ">", ">=", "||", "&&", ".", "..", 
-                     ":", "+", "-", "/", "*", "%", "@>", "<@", "$", "=>", ",",
-                     ";", "then", "else", "as", "::", "->"]
+                     ":", "+", "++", "-", "/", "*", "%", "@>", "<@", "$", "=>",
+                     ",", ";", "then", "else", "as", "::", "->"]
 let mergeKeywordsBefore = ["if", "import", "let", "(", "[", "{", "<|"] 
                                                                 + mergeKeywords
 let mergeKeywordsAfter = ["|>", ")", "}", "]"] + mergeKeywords
