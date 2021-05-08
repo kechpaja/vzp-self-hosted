@@ -17,7 +17,7 @@ let unique = (list :: [[Int64]]) :: [[Int64]] =>
     if list.length == 1 then
         if utils.in(list:0, ["true", "false", "recur"]) then [] else list
     else
-    let rec = recur(list:(1..(list.length-1)))
+    let rec = recur(list:(1..list.length))
     if utils.in(list:0, rec + ["true", "false", "recur"]) then 
         rec
     else
@@ -179,11 +179,10 @@ let defunc_main = (ast :: TransformedAst,
         TransformedAst.object ->
             let f = (x :: IdValuePair</TransformedAst/>) => x.value
             let values = listRec(f $ that.contents, recur, env, count)
-            let contents = if that.contents.length == 0 then [] else
-                ((i :: Int64) => IdValuePair</JsAst/>(
-                    (that.contents:i).identifier,
-                    values.asts:i
-                )) $ 0..(that.contents.length - 1)
+            let contents = ((i :: Int64) => IdValuePair</JsAst/>(
+                                (that.contents:i).identifier,
+                                values.asts:i
+                            )) $ 0..that.contents.length
             DefuncWrapper(JsAst.object(contents),
                           values.funcs,
                           values.closure,

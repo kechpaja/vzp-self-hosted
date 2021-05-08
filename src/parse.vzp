@@ -4,13 +4,13 @@ import utils
 
 /* TODO this should be in a library somewhere */
 let restOf = (array :: [[Int64]]) =>
-    if array.length < 2 then [] else array:(1..(array.length-1))
+    if array.length < 2 then [] else array:(1..array.length)
 
 let restOfOps = (array :: [[[Int64]]]) =>
-    if array.length < 2 then [] else array:(1..(array.length-1))
+    if array.length < 2 then [] else array:(1..array.length)
 
 let restOfString = (array :: [Int64]) =>
-    if array.length < 2 then [] else array:(1..(array.length-1))
+    if array.length < 2 then [] else array:(1..array.length)
 
 let opsByPrec = [ [ "||" ], /* Lowest to highest */
                   [ "&&" ],
@@ -175,7 +175,7 @@ let parseObjectInternalList = (tokens :: [[Int64]],
     else if !isValidId(tokens:0) || (tokens:1) != ":" then
         fail("Need an ID followed by ':' in an object field")
     else
-        let elem = mutualRecParse(tokens:(2..(tokens.length-1)))
+        let elem = mutualRecParse(tokens:(2..tokens.length))
         if !elem.wellFormed then fail(elem.error) else
         if listEnds(elem.rest) then
             { ast: [{ identifier: (tokens:0), value: elem.ast }],
@@ -427,7 +427,7 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
             if tokens.length < 5 || !isValidId(tokens:1) || tokens:2 != "=" then
                 fail("Malformed 'let' expression")
             else
-                let value = recur(opsByPrec, tokens:(3..(tokens.length-1)))
+                let value = recur(opsByPrec, tokens:(3..tokens.length))
                 if !value.wellFormed then fail(value.error) else
                 if !checkFor(value.rest, ";") then
                     fail("Missing semicolon or newline after value of 'let',"
@@ -460,7 +460,7 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
         else if tokens:0 == "(" then
             if tokens.length >= 4 && ((tokens:1) == ")")
                                   && ((tokens:2) == "=>") then
-                let body = recurWithFullOps(tokens:(3..(tokens.length-1)))
+                let body = recurWithFullOps(tokens:(3..tokens.length))
                 if !body.wellFormed then fail(body.error) else
                 { ast: { type: "lambda",
                          params: [],
@@ -531,7 +531,7 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
                   rest: restOf(tokens),
                   wellFormed: true }
             else
-                let str = (tokens:0):(1..((tokens:0).length-2))
+                let str = (tokens:0):(1..((tokens:0).length-1))
                 { ast: { type: "array",
                          contents: ((x :: Int64) =>
                                         {type: "number", value: x}) $ str },
@@ -581,10 +581,10 @@ let parseWithImports = (tokens :: [[Int64]]) =>
             fail("Malformed import statement")
         else if (tokens.length >= 6) && ((tokens:2) == "as")
                                      && isValidId(tokens:3) then
-            if !checkFor(tokens:(4..(tokens.length-1)), ";") then
+            if !checkFor(tokens:(4..tokens.length), ";") then
                 fail("Missing semicolon or newline in import")
             else
-                let body = recur(tokens:(5..(tokens.length-1)))
+                let body = recur(tokens:(5..tokens.length))
                 if !body.wellFormed then fail(body.error) else
                 { ast: { type: "import",
                          module: tokens:1,
@@ -593,10 +593,10 @@ let parseWithImports = (tokens :: [[Int64]]) =>
                   rest: body.rest,
                   wellFormed: true }
         else
-            if !checkFor(tokens:(2..(tokens.length-1)), ";") then
+            if !checkFor(tokens:(2..tokens.length), ";") then
                 fail("Missing semicolon or newline in import")
             else
-                let body = recur(tokens:(3..(tokens.length-1)))
+                let body = recur(tokens:(3..tokens.length))
                 if !body.wellFormed then fail(body.error) else
                 { ast: { type: "import",
                          module: tokens:1,
@@ -629,14 +629,14 @@ let loadAndParseFile = (filename :: [Int64]) =>
 
 let resolveModule = (currentModule :: [Int64], newModuleName :: [Int64]) =>
     let slashIndex = utils.lastCharIndex(currentModule, 47) /* slash */
-    let path = if slashIndex < 0 then "" else currentModule:(0..(slashIndex))
+    let path = if slashIndex < 0 then "" else currentModule:(0..(slashIndex+1))
     path + newModuleName
 
 
 let stripPath = (moduleName :: [Int64]) =>
     let slashIndex = utils.lastCharIndex(moduleName, 47)
     if slashIndex < 0 then moduleName 
-                      else moduleName:((slashIndex+1)..(moduleName.length-1))
+                      else moduleName:((slashIndex+1)..moduleName.length)
 
 
 let loadProgramAndImports = (module :: [Int64]) =>
@@ -680,7 +680,7 @@ let generateFinalProgram = (modules :: [Object]) =>
     else if modules.length == 1 then
         { ast: (modules:0).value, wellFormed: true }
     else
-        let body = recur(modules:(1..(modules.length-1)))
+        let body = recur(modules:(1..modules.length))
         if !body.wellFormed then body else
         { ast: { type: "assignment",
                  identifier: "module " + (modules:0).name,

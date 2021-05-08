@@ -29,7 +29,7 @@ let lastCharIndex = (string :: [Int64], c :: Int64) =>
 let strIndexInArray = (str :: [Int64], array :: [[Int64]]) =>
     if array == [] then -1 else
     if array:0 == str then 0 else
-    1 + recur(str, if array.length == 1 then [] else array:1..(array.length-1))
+    1 + recur(str, if array.length == 1 then [] else array:1..array.length)
 
 {
     atoi: atoi,

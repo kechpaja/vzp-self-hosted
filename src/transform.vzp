@@ -3,7 +3,7 @@ import TransformedAst
 import desugar
 import utils
 
-let restOf = (x :: [Object]) => if x.length <= 1 then [] else x:1..(x.length-1)
+let restOf = (x :: [Object]) => if x.length <= 1 then [] else x:1..x.length
 
 let ctoid = (x :: Int64) => "i" + utils.itoa(x)
 
@@ -67,7 +67,7 @@ let uniqueIds = (astOuter :: Object) =>
                 let ln = params.length
                 if ln == 0 then e else
                 if ln == 1 then appendToEnv(params:0, ctoid(c), e) else
-                appendToEnv(params:0, ctoid(c), recur(params:1..(ln-1), e, c+1))
+                appendToEnv(params:0, ctoid(c), recur(params:1..ln, e, c+1))
 
             let newEnv = augmentEnv(ast.params, env, count)
             let body = recur(ast.body, newEnv, count + ast.params.length)

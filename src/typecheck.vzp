@@ -3,7 +3,7 @@ import parse
 import utils
 
 let restOf = (list :: [Object]) =>
-    if list.length < 2 then [] else list:(1..(list.length-1))
+    if list.length < 2 then [] else list:(1..list.length)
 
 /* Stuff related to types themselves */
 let narrowest = { category: "dummy", name: "narrowest" } /* Unifies w/ x as x */
@@ -110,10 +110,9 @@ let subs = (tast :: Object, env :: [Object]) =>
     if tast.category == "named" && isInEnv(tast.name, env) then
         let ty = getFromEnv(tast.name, env)
         if ty.category != "type" && ty.category != "user-defined" then ty else
-        let e = if ty.params.length == 0 then env else 
-            ((i :: Int64, nv :: [Object]) =>
-                appendToEnv(ty.params:i, recWithSameEnv(tast.args:i), nv)
-            ) @> 0..(ty.params.length-1) env
+        let e = ((i :: Int64, nv :: [Object]) =>
+                    appendToEnv(ty.params:i, recWithSameEnv(tast.args:i), nv)
+                ) @> 0..ty.params.length env
 
         { category: "user-defined",
           id: ty.id,
@@ -193,7 +192,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   params: [],
                   body: { type: "lookup", identifier: " " },
                   ann: { category: "error",
-                         name: "Rhs of ~ takes no arguments" } }
+                         name: "Function in RHS of ~ takes no arguments" } }
             else
             let merged = unify((newArgs:1).ann.params:0, (newArgs:0).ann)
             if merged.category == "error" then
@@ -203,9 +202,8 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   ann: merged }
             else
                 let throwaway = (newArgs:1).ann.params
-                let prms = if throwaway.length == 1 then []
-                           else throwaway:(1..(throwaway.length-1))
-                let indices = 0..(prms.length-1)
+                let prms = throwaway:(1..throwaway.length)
+                let indices = 0..prms.length
                 let fparams = ((i :: Int64) => "x " + utils.itoa(i)) $ indices
                 let fargs = ((i :: Int64) => { type: "lookup",
                                                identifier: "x " + utils.itoa(i),
@@ -609,7 +607,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         else
             let newEnv = ((x :: Int64, e :: [Object]) => 
                 appendToEnv(expr.ann.params:x, args:x, e)
-            ) @> (0..(args.length-1)) env
+            ) @> 0..args.length env
 
             let ann = subs(expr.ann, newEnv)
             let newAnn = { category: "type",
@@ -660,12 +658,10 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                 subs(a, envv)
             ) $ (((x :: Object) => x.ann) $ typeAst.fields)
 
-            let fieldEntries = if typeAst.fields.length > 0 then 
-                    ((i :: Int64) => {
-                        param: (typeAst.fields:i).param,
-                        ann: fieldTypes:i
-                    }) $ (0..(typeAst.fields.length-1)) 
-                else []
+            let fieldEntries = ((i :: Int64) => {
+                                    param: (typeAst.fields:i).param,
+                                    ann: fieldTypes:i
+                                }) $ 0..typeAst.fields.length
 
             let sflds = ((x :: Object) => {
                 identifier: x.identifier,

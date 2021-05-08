@@ -26,8 +26,8 @@ let charsGoTogether = (a :: [Int64], b :: Int64) =>
      || (a == "|" && b == 62) || (a == "<" && b == 124)
      || (a == "-" && b == 62) || (a == "+" && b == 43)
      || (a == "<" && b == 47) || (a == "/" && b == 62)
-     || (if a.length >= 2 then (a:(0..1)) == "/*"
-                       && (a:((a.length-2)..(a.length-1))) !="*/" else false)
+     || (if a.length >= 2 then (a:(0..2)) == "/*"
+                       && (a:((a.length-2)..a.length)) !="*/" else false)
 
 /* whitespace != \n, \r */
 let skip = (c :: Int64) => (c <= 32) && (c != 10) && (c != 13)
@@ -44,11 +44,11 @@ let tokenize = (currentTokenPart :: [Int64], chars :: [Int64]) =>
             [currentTokenPart] + [chars]
     else
         if charsGoTogether(currentTokenPart, chars : 0) then
-            recur(currentTokenPart + chars : [0], chars : 1..(chars.length-1))
+            recur(currentTokenPart + chars : [0], chars : 1..chars.length)
         else if skip(chars : 0) then
-            [currentTokenPart] + recur("", chars : 1..(chars.length-1))
+            [currentTokenPart] + recur("", chars : 1..chars.length)
         else
-            [currentTokenPart] + recur(chars : [0], chars : 1..(chars.length-1))
+            [currentTokenPart] + recur(chars : [0], chars : 1..chars.length)
 
 let simplifyToken = (t :: [Int64]) => if isEOL(t:0) then ";" else t
 
@@ -61,12 +61,12 @@ let mergeKeywordsBefore = ["if", "import", "let", "(", "[", "{", "<|"]
 let mergeKeywordsAfter = ["|>", ")", "}", "]"] + mergeKeywords
 
 let merge = (token :: [Int64], list :: [[Int64]]) =>
-    if token.length >= 2 && (token:(0..1)) == "/*" then list else
+    if token.length >= 2 && (token:(0..2)) == "/*" then list else
     if list.length == 0 && token == ";" then [] else
     if list.length == 0 then [token] else
     if token == " " then list else
     if utils.in(token, mergeKeywordsBefore) && ((list:0) == ";") then 
-        [token] + (if list.length > 1 then (list:(1..(list.length-1))) else [])
+        [token] + (if list.length > 1 then (list:(1..list.length)) else [])
     else if utils.in(list:0, mergeKeywordsAfter) && token == ";" then
         list
     else
@@ -76,6 +76,6 @@ let merge = (token :: [Int64], list :: [[Int64]]) =>
 (program :: [Int64]) =>
     let tokens = merge @> (simplifyToken $ tokenize("", program)) []
     if tokens.length > 0 && (tokens:0 == ";") then 
-        (tokens:(1..(tokens.length-1)))
+        (tokens:(1..tokens.length))
     else
         tokens

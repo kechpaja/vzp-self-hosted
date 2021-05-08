@@ -105,21 +105,11 @@ function __91__93_(closure, left, right) {
 
 /* .. */
 function __46__46_(closure, left, right) {
-    let num = left;
     let array = [];
 
-    if (left < right) {
-        while (num <= right) {
-            array.push(num);
-            num += 1;
-        }
-    } else if (left > right) {
-        while (num >= right) {
-            array.push(num);
-            num -= 1;
-        }
-    } else {
-        array.push(num);
+    while (left < right) {
+        array.push(left);
+        left += 1;
     }
 
     return array;
