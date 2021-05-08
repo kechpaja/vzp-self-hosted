@@ -53,6 +53,8 @@ let compile_body = (ast :: JsAst, isBound :: Boolean) =>
                         wrap("{" + utils.join(f $ that.contents) + "}"),
         JsAst.unop -> if that.operation == "unary -" then 
                 wrap("(-(" + recTrue(that.arg) + "))")
+            else if that.operation == "length" then
+                wrap(recTrue(that.arg) + ".length")
             else wrap("(" + that.operation + "(" + recTrue(that.arg) + "))")
     |>
 

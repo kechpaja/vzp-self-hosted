@@ -709,6 +709,7 @@ let envWithBuiltins = [
     { id: "!", t: function([boolean], boolean) },
     { id: "unary -", t: function([int64], int64) },
     { id: "print", t: function([array(int64)], array(int64)) },
+    { id: "length", t: function([array(narrowest)], int64) },
     { id: "true", t: boolean },
     { id: "false", t: boolean },
     { id: "IO", t: narrowest },

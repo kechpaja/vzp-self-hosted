@@ -8,7 +8,7 @@ import utils
 /* XXX still missing a few things I'm not ready to put straight into JS */
 let binops = [ "==", ">", ">=", "<", "<=", "+", "-", "*", "/", "%", "++", "||",
                "&&", ":", ".." ]
-let unops = [ "!", "unary -" ]
+let unops = [ "!", "unary -", "length" ]
 
 let corefuncs = [ "slow=", "slow+", "$", "@>", "<@", "print", "[]" ]
 
