@@ -24,6 +24,9 @@ let compile_body = (ast :: JsAst, isBound :: Boolean) =>
             + recTrue(that.value) + ";" + recFalse(that.body),
         JsAst.binop -> if that.operation == ":" then
                 wrap(recTrue(that.left) + "[" + recTrue(that.right) + "]")
+            else if that.operation == "$" then
+                wrap(recTrue(that.right) + ".map(function(x){const y="
+                        + recTrue(that.left) + ";return y._f(y,x);})")
             else if that.operation == ".." then
                 wrap("b_range(" + recTrue(that.left) + ","
                                 + recTrue(that.right) + ")")

@@ -682,8 +682,6 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         let asfd = print(ast)
         ast
 
-/* ==, !=, +, $, @>, <@, : are handled separately. Some are still present
- * in this list; others will be added later. */
 /* TODO ==, !=, $, @>, and <@ can be handled with type variables, which are
  * coming in a later version. Probably handling array concat that way too. */
 let envWithBuiltins = [

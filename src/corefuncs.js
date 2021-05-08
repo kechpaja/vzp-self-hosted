@@ -29,6 +29,7 @@ function _slow_61_(closure, left, right) {
 }
 
 /* + */
+// TODO we can probably get rid of this after we type object fields
 function _slow_43_(closure, left, right) {
     if (typeof left === "number" && typeof right === "number") {
         return left + right;
@@ -39,15 +40,6 @@ function _slow_43_(closure, left, right) {
     }
 
     throw "slow+ got '" + left + "' and '" + JSON.stringify(right) + "'";
-}
-
-/* $ */
-function __36_(closure, left, right) {
-    if (!Array.isArray(right)) {
-        throw "Not an array: " + JSON.stringify(right) + " (also got " + JSON.stringify(left) + ")";
-    }
-
-    return right.map(x => left._f(left, x));
 }
 
 /* @> */
