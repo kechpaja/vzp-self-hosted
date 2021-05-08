@@ -22,7 +22,9 @@ let compile_body_js = (ast :: JsAst, isBound :: Boolean) =>
         JsAst.array -> wrap("[" + utils.join(recTrue $ that.contents) + "]"),
         JsAst.assignment -> "let " + escape(that.identifier) + "="
             + recTrue(that.value) + ";" + recFalse(that.body),
-        JsAst.binop -> if that.operation == "array+" then
+        JsAst.binop -> if that.operation == ":" then
+                wrap(recTrue(that.left) + "[" + recTrue(that.right) + "]")
+            else if that.operation == "++" then
                 wrap(recTrue(that.left) + ".concat(" + recTrue(that.right) +")")
             else if that.operation == "/" then
                 wrap("Math.floor(" + recTrue(that.left) + "/" 

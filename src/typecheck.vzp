@@ -225,6 +225,16 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   func: newFunc,
                   args: newArgs,
                   ann: unified }
+            else if newFunc.identifier == "!=" then
+                { type: "call",
+                  func: { type: "lookup", identifier: "!", ann: narrowest },
+                  args: [ { type: "call",
+                            func: { type: "lookup",
+                                    identifier: "==",
+                                    ann: newFunc.ann },
+                            args: newArgs,
+                            ann: boolean } ],
+                  ann: boolean }
             else
                 { type: "call",
                   func: newFunc,
@@ -243,7 +253,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
             else if argsType.category == "array" then
                 { type: "call",
                   func: { type: "lookup",
-                          identifier: "array+",
+                          identifier: "++",
                           ann: function([argsType, argsType], argsType) },
                   args: newArgs,
                   ann: argsType }
@@ -263,7 +273,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
             if argsType.category == "array" then
                 { type: "call",
                   func: { type: "lookup",
-                          identifier: "array+",
+                          identifier: "++",
                           ann: function([argsType, argsType], argsType) },
                   args: newArgs,
                   ann: argsType }
@@ -300,15 +310,26 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                     && (newArgs:1).ann.category == "named"
                     && (newArgs:1).ann.name == "Int64" then
                 { type: "call",
-                  func: newFunc,
+                  func: { type: "lookup",
+                          identifier: ":",
+                          ann: narrowest },
                   args: newArgs,
                   ann: (newArgs:0).ann.contents }
             else if (newArgs:0).ann.category == "dummy"
-                    && ((newArgs:1).ann.category == "dummy"
-                    || (newArgs:1).ann.category == "named"
-                    && (newArgs:1).ann.name == "Int64") then
+                    && (newArgs:1).ann.category == "named"
+                    && (newArgs:1).ann.name == "Int64" then
                 { type: "call",
-                  func: newFunc,
+                  func: { type: "lookup",
+                          identifier: ":",
+                          ann: narrowest },
+                  args: newArgs,
+                  ann: narrowest }
+            else if (newArgs:0).ann.category == "dummy"
+                    && (newArgs:1).ann.category == "dummy" then
+                { type: "call",
+                  func: { type: "lookup",
+                          identifier: "[]", /* TODO only needed if we can't type the args*/
+                          ann: newFunc.ann },
                   args: newArgs,
                   ann: narrowest }
             else if ((newArgs:0).ann.category == "array"
@@ -316,9 +337,23 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                     && (newArgs:1).ann.category == "array"
                     && (newArgs:1).ann.contents.category == "named"
                     && (newArgs:1).ann.contents.name == "Int64" then
-                { type: "call",
-                  func: newFunc,
-                  args: newArgs,
+                { type: "call", /* TODO this should be recursive */
+                  func: { type: "lookup",
+                          identifier: "$",
+                          ann: (newArgs:0).ann },
+                  args: [ { type: "lambda",
+                            params: [ " " ],
+                            body: { type: "call",
+                                    func: { type: "lookup",
+                                            identifier: ":",
+                                            ann: narrowest },
+                                    args: [ newArgs:0,
+                                            { type: "lookup",
+                                              identifier: " ",
+                                              ann: int64 } ],
+                                    ann: narrowest }, /* TODO real ann */
+                            ann: function([int64], narrowest) }, /*TODO eventually array contents*/
+                          newArgs:1 ],
                   ann: (newArgs:0).ann }
             else
                 { type: "call",

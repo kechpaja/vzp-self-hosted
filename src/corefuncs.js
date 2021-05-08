@@ -44,11 +44,6 @@ function __61__61_(closure, left, right) {
     return false; // Easier than worrying about when to fail
 }
 
-/* != */
-function __33__61_(closure, left, right) {
-    return !__61__61_(closure, left, right);
-}
-
 /* + */
 function __43_(closure, left, right) {
     if (typeof left === "number" && typeof right === "number") {
@@ -92,7 +87,9 @@ function __60__64_(closure, one, two, three) {
 }
 
 /* : */
-function __58_(closure, left, right) {
+// TODO we can get rid of this as soon as we've stopped generating calls to it
+// in the compiler. In practice, that will be once we've typed object fields.
+function __91__93_(closure, left, right) {
     if (Array.isArray(left)) {
         if (typeof right === "number") {
             return left[right];
@@ -103,7 +100,7 @@ function __58_(closure, left, right) {
         }
     }
 
-    throw ": requires an array and a number or array; got '" + left + "' and '" + right + "' instead";
+    throw "[] requires an array and a number or array; got '" + left + "' and '" + right + "' instead";
 }
 
 /* .. */

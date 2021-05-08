@@ -47,7 +47,12 @@ added in the parser. There's also a bunch of stuff to do in typecheck.vzp for
 that, although I'm going to wait for another day.
 
 Currently, we're doing something wrong when typechecking return types --- we
-get an exception when we should see a type mismatch.  
+get an exception when we should see a type mismatch.
+
+Eventually, we'll need to remove [] entirely, but we can't do that until we
+type object fields. Once we do that, we can also get rid of the corefuncs __43_
+function, since it will no longer be possible to add two things that don't have
+a defined type.
 
 
 
@@ -68,8 +73,9 @@ some point, but those need to be batched as they will require a fair bit of
 work on my part to change things in the compiler. For now, the ones I'm
 thinking of are:
 
- - The + operator should no longer be overloaded. Add ++ or something like that
-   for lists.
+ - The + operator should no longer be overloaded. Possibly continue to allow it
+   to be overloaded when called directly on two arrays, but when passed as a
+   function it should always be for numbers only.
 
  - Array access should no longer use :. Consider either more traditional syntax
    or treating arrays as callable on integers; the latter may be preferable
@@ -82,3 +88,10 @@ thinking of are:
 
 
 We should probably allow empty objects? Or is that silly?
+
+
+
+Some other long-term ideas:
+
+ - Build in easy serialization, by storing the fields and expected types of a
+   user-defined type. Should be able to output JSON with a single line.

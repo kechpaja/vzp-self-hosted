@@ -6,11 +6,10 @@ import transform
 import utils
 
 /* XXX still missing a few things I'm not ready to put straight into JS */
-let binops = [ ">", ">=", "<", "<=", "-", "*", "/", "%", "array+", "||", "&&" ]
+let binops = [ ">", ">=", "<", "<=", "-", "*", "/", "%", "++", "||", "&&", ":" ]
 let unops = [ "!", "unary -" ]
 
-let corefuncs = [ "==", "!=", "+", "$", "@>", "<@", "print", ":", "..", "ref=" ]
-let builtins = corefuncs + unops + binops
+let corefuncs = [ "==", "+", "$", "@>", "<@", "print", "[]", "..", "ref=" ]
 
 let unique = (list :: [[Int64]]) :: [[Int64]] =>
     if list.length == 0 then [] else
