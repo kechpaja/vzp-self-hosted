@@ -45,7 +45,7 @@ function __61__61_(closure, left, right) {
 }
 
 /* + */
-function __43_(closure, left, right) {
+function _slow_43_(closure, left, right) {
     if (typeof left === "number" && typeof right === "number") {
         return left + right;
     }
@@ -54,7 +54,7 @@ function __43_(closure, left, right) {
         return left.concat(right);
     }
 
-    throw "+ requires two numbers or arrays; got '" + left + "' and '" + JSON.stringify(right) + "' instead";
+    throw "slow+ got '" + left + "' and '" + JSON.stringify(right) + "'";
 }
 
 /* $ */

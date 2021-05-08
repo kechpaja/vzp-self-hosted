@@ -264,7 +264,9 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   ann: argsType }
             else
                 { type: "call",
-                  func: newFunc,
+                  func: { type: "lookup",
+                          identifier: "slow+",
+                          ann: narrowest },
                   args: newArgs,
                   ann: narrowest }
         else if newFunc.type == "lookup" && newFunc.identifier == "++"
