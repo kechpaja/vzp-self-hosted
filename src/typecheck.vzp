@@ -3,7 +3,7 @@ import parse
 import utils
 
 let restOf = (list :: [Object]) =>
-    if list.length < 2 then [] else list:(1..list.length)
+    if length(list) < 2 then [] else list:(1..length(list))
 
 /* Stuff related to types themselves */
 let narrowest = { category: "dummy", name: "narrowest" } /* Unifies w/ x as x */
@@ -73,7 +73,7 @@ let unify = (t1 :: Object, t2 :: Object) =>
         let unifiedReturn = recur(t1.return, t2.return)
         if unifiedReturn.category == "error" then
             { category: "error", name: "return: " + unifiedReturn.name } 
-        else if t1.params.length != t2.params.length then
+        else if length(t1.params) != length(t2.params) then
             { category: "error", name: "arity mismatch" }
         else
 
@@ -112,7 +112,7 @@ let subs = (tast :: Object, env :: [Object]) =>
         if ty.category != "type" && ty.category != "user-defined" then ty else
         let e = ((i :: Int64, nv :: [Object]) =>
                     appendToEnv(ty.params:i, recWithSameEnv(tast.args:i), nv)
-                ) @> 0..ty.params.length env
+                ) @> 0..length(ty.params) env
 
         { category: "user-defined",
           id: ty.id,
@@ -170,7 +170,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
           ann: newBody.ann }
     else if ast.type == "call" then
         if ast.func.type == "call" && ast.func.func.type == "lookup"
-            && ast.func.func.identifier == "~" && ast.func.args.length == 2 then
+            && ast.func.func.identifier == "~" && length(ast.func.args) == 2 then
             recur({ type: "call",
                     func: ast.func.args:1,
                     args: [ast.func.args:0] + ast.args }, env)
@@ -181,13 +181,13 @@ let typecheck = (ast :: Object, env :: [Object]) =>
 
         /* Special cases for builtins! */
         if newFunc.type == "lookup" && newFunc.identifier == "~"
-                                    && newArgs.length == 2 then
+                                    && length(newArgs) == 2 then
             if (newArgs:1).ann.category != "function" then
                 { type: "lambda",
                   params: [],
                   body: { type: "lookup", identifier: " " },
                   ann: { category: "error", name: "Non-function in rhs of ~" } }
-            else if (newArgs:1).ann.params.length < 1 then
+            else if length((newArgs:1).ann.params) < 1 then
                 { type: "lambda",
                   params: [],
                   body: { type: "lookup", identifier: " " },
@@ -202,8 +202,8 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   ann: merged }
             else
                 let throwaway = (newArgs:1).ann.params
-                let prms = throwaway:(1..throwaway.length)
-                let indices = 0..prms.length
+                let prms = throwaway:(1..length(throwaway))
+                let indices = 0..length(prms)
                 let fparams = ((i :: Int64) => "x " + utils.itoa(i)) $ indices
                 let fargs = ((i :: Int64) => { type: "lookup",
                                                identifier: "x " + utils.itoa(i),
@@ -216,7 +216,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   ann: function(prms, (newArgs:1).ann.return) }
         else if newFunc.type == "lookup" && utils.in(newFunc.identifier,
                                                 ["==", "!="])
-                                    && newArgs.length == 2 then
+                                    && length(newArgs) == 2 then
             let unified = unify((newArgs:0).ann, (newArgs:1).ann)
             if unified.category == "error" then
                 { type: "call",
@@ -239,7 +239,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                       ann: boolean }
                 else eqFunc
         else if newFunc.type == "lookup" && newFunc.identifier == "+"
-                                         && newArgs.length == 2 then
+                                         && length(newArgs) == 2 then
             let argsType = unify((newArgs:0).ann, (newArgs:1).ann)
             if argsType.category == "named" && argsType.name == "Int64" then
                 { type: "call",
@@ -268,7 +268,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   args: newArgs,
                   ann: narrowest }
         else if newFunc.type == "lookup" && newFunc.identifier == "++"
-                                         && newArgs.length == 2 then
+                                         && length(newArgs) == 2 then
             let argsType = unify((newArgs:0).ann, (newArgs:1).ann)
             if argsType.category == "array" then
                 { type: "call",
@@ -285,9 +285,9 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                          name: "Non-array as arg to ++: "
                             + stringifyType(argsType) } }
         else if newFunc.type == "lookup" && newFunc.identifier == "$"
-                                         && newArgs.length == 2 then
+                                         && length(newArgs) == 2 then
             if (newArgs:0).ann.category == "function" 
-                    && (newArgs:0).ann.params.length == 1
+                    && length((newArgs:0).ann.params) == 1
                     && (((newArgs:1).ann.category == "array"
                         && unify((newArgs:0).ann.params:0,
                                  (newArgs:1).ann.contents).category != "error")
@@ -305,7 +305,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                             + " can't handle contents of " 
                             + stringifyType((newArgs:1).ann) } }
         else if newFunc.type == "lookup" && newFunc.identifier == ":"
-                                         && newArgs.length == 2 then
+                                         && length(newArgs) == 2 then
             if (newArgs:0).ann.category == "array"
                     && (newArgs:1).ann.category == "named"
                     && (newArgs:1).ann.name == "Int64" then
@@ -362,11 +362,11 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   ann: { category: "error",
                          name: "incompatible types in ':'" } }
         else if newFunc.type == "lookup" && newFunc.identifier == "@>"
-                                         && newArgs.length == 3 then
+                                         && length(newArgs) == 3 then
             let one = (newArgs:0).ann
             let two = (newArgs:1).ann
             let three = (newArgs:2).ann
-            if one.category == "function" && one.params.length == 2
+            if one.category == "function" && length(one.params) == 2
                     && (two.category == "array"
                         && unify(one.params:0,
                                  two.contents).category != "error")
@@ -384,11 +384,11 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                             + " " + stringifyType(two) + " "
                             + stringifyType(three) } }
         else if newFunc.type == "lookup" && newFunc.identifier == "<@"
-                                         && newArgs.length == 3 then
+                                         && length(newArgs) == 3 then
             let one = (newArgs:0).ann
             let two = (newArgs:1).ann
             let three = (newArgs:2).ann
-            if one.category == "function" && one.params.length == 2
+            if one.category == "function" && length(one.params) == 2
                     && three.category == "array"
                     && unify(one.params:1,
                              three.contents).category != "error" then
@@ -435,7 +435,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                 else
                     ""
 
-            if ast.args.length != newFunc.ann.params.length then
+            if length(ast.args) != length(newFunc.ann.params) then
                 { type: "call",
                   func: newFunc,
                   args: newArgs,
@@ -521,11 +521,6 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   obj: newObj,
                   field: ast.field,
                   ann: (newObj.ann.fields:index).ann }
-        else if newObj.ann.category == "array" && ast.field == "length" then
-            { type: "field_access", /* XXX Get rid of this special case if we */
-              obj: newObj,          /* ever replace .length */
-              field: ast.field,
-              ann: int64 }
         else if !(newObj.ann.category == "named"
                   || newObj.ann.category == "dummy") then
             { type: "field_access",
@@ -583,7 +578,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
             else
                 y
         let errorsString = forFold @> newContents ""
-        if errorsString.length > 0 then
+        if length(errorsString) > 0 then
             { type: "object",
               contents: newContents,
               ann: { category: "error", name: "object: " + errorsString } }
@@ -599,15 +594,15 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         if expr.ann.category != "type" then
             { type: "type",
               ann: { category: "error", name: "Bad parametrized type" } }
-        else if expr.ann.params.length != args.length then
+        else if length(expr.ann.params) != length(args) then
             { type: "type",
               ann: { category: "error", name: "Arity mismatch, param'd type" } }
-        else if args.length == 0 then
+        else if length(args) == 0 then
             expr
         else
             let newEnv = ((x :: Int64, e :: [Object]) => 
                 appendToEnv(expr.ann.params:x, args:x, e)
-            ) @> 0..args.length env
+            ) @> 0..length(args) env
 
             let ann = subs(expr.ann, newEnv)
             let newAnn = { category: "type",
@@ -661,7 +656,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
             let fieldEntries = ((i :: Int64) => {
                                     param: (typeAst.fields:i).param,
                                     ann: fieldTypes:i
-                                }) $ 0..typeAst.fields.length
+                                }) $ 0..length(typeAst.fields)
 
             let sflds = ((x :: Object) => {
                 identifier: x.identifier,

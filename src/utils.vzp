@@ -24,12 +24,12 @@ let lastCharIndexHelper = (string :: [Int64], c :: Int64, index :: Int64) =>
     if index < 0 || string:index == c then index else recur(string, c, index-1)
 
 let lastCharIndex = (string :: [Int64], c :: Int64) =>
-    lastCharIndexHelper(string, c, string.length-1)
+    lastCharIndexHelper(string, c, length(string)-1)
 
 let strIndexInArray = (str :: [Int64], array :: [[Int64]]) =>
     if array == [] then -1 else
     if array:0 == str then 0 else
-    1 + recur(str, if array.length == 1 then [] else array:1..array.length)
+    1 + recur(str, if length(array) == 1 then [] else array:1..length(array))
 
 {
     atoi: atoi,

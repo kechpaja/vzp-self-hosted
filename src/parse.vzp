@@ -4,13 +4,13 @@ import utils
 
 /* TODO this should be in a library somewhere */
 let restOf = (array :: [[Int64]]) =>
-    if array.length < 2 then [] else array:(1..array.length)
+    if length(array) < 2 then [] else array:(1..length(array))
 
 let restOfOps = (array :: [[[Int64]]]) =>
-    if array.length < 2 then [] else array:(1..array.length)
+    if length(array) < 2 then [] else array:(1..length(array))
 
 let restOfString = (array :: [Int64]) =>
-    if array.length < 2 then [] else array:(1..array.length)
+    if length(array) < 2 then [] else array:(1..length(array))
 
 let opsByPrec = [ [ "||" ], /* Lowest to highest */
                   [ "&&" ],
@@ -32,7 +32,7 @@ let isNumber = (string :: [Int64]) =>
     (((a :: Boolean, b :: Boolean) => a && b) <@ true isDigit $ string)
 
 let isValidId = (string :: [Int64]) => 
-    (string.length > 0)
+    (length(string) > 0)
  && isAlpha(string:0)
  && ((x :: Boolean, y :: Int64) => x && (isAlpha(y) || isDigit(y))) 
                                                     <@ true restOfString(string)
@@ -42,10 +42,10 @@ let fail = (error :: [Int64]) =>
     { wellFormed: false, error: error } /* TODO */
 
 let checkFor = (tokens :: [[Int64]], value :: [Int64]) =>
-    if tokens.length == 0 then false else (tokens:0) == value
+    if length(tokens) == 0 then false else (tokens:0) == value
 
 let noFollowingExpr = (tokens :: [[Int64]]) =>
-    tokens.length == 0
+    length(tokens) == 0
  || utils.in(tokens:0, [";", ")", "}", "]", "then", "else"]) /* TODO binops */
 
 let parseTypeAnn = (tokens :: [[Int64]]) =>
@@ -71,9 +71,9 @@ let parseTypeAnn = (tokens :: [[Int64]]) =>
                 { wellFormed: false }
 
     /* TODO this will get longer when we add objects, hashes, sets (tuples?) */
-    if tokens.length < 1 then { wellFormed: false } else
+    if length(tokens) < 1 then { wellFormed: false } else
     if isValidId(tokens:0) then 
-        if tokens.length > 1 && checkFor(restOf(tokens), "</") then
+        if length(tokens) > 1 && checkFor(restOf(tokens), "</") then
             let innards = parseTypeAnnList(restOf(restOf(tokens)))
             if !innards.wellFormed || !checkFor(innards.rest, "/>") then
                 { wellFormed: false }
@@ -91,7 +91,7 @@ let parseTypeAnn = (tokens :: [[Int64]]) =>
               wellFormed: true }
     else if checkFor(tokens, "(") then
         let list = parseTypeAnnList(restOf(tokens))
-        if !list.wellFormed || list.rest.length < 1 || !checkFor(list.rest, ")")
+        if !list.wellFormed || length(list.rest) < 1 || !checkFor(list.rest, ")")
             then { wellFormed: false }
             else
                 let retType = recur(restOf(list.rest))
@@ -103,7 +103,7 @@ let parseTypeAnn = (tokens :: [[Int64]]) =>
                   wellFormed: true }
     else if checkFor(tokens, "[") then
         let inner = recur(restOf(tokens))
-        if !inner.wellFormed || inner.rest.length < 1 
+        if !inner.wellFormed || length(inner.rest) < 1 
                              || !checkFor(inner.rest, "]")
             then { wellFormed: false }
             else { ann: { category: "array", contents: inner.ann },
@@ -113,7 +113,7 @@ let parseTypeAnn = (tokens :: [[Int64]]) =>
         { wellFormed: false }
 
 let parseParam = (tokens :: [[Int64]]) =>
-    if tokens.length < 3 || !isValidId(tokens:0) || tokens:1 != "::" then
+    if length(tokens) < 3 || !isValidId(tokens:0) || tokens:1 != "::" then
         { wellFormed: false }
     else
         let ann = parseTypeAnn(restOf(restOf(tokens)))
@@ -124,7 +124,7 @@ let parseParam = (tokens :: [[Int64]]) =>
           wellFormed: true }
 
 let parseParamList = (tokens :: [[Int64]]) =>
-    if (tokens.length == 0) || ((tokens:0) == ")") || ((tokens:0) == "}") then
+    if (length(tokens) == 0) || ((tokens:0) == ")") || ((tokens:0) == "}") then
         { ast: [], rest: tokens, wellFormed: true }
     else
         let param = parseParam(tokens)
@@ -146,7 +146,7 @@ let parseArgList = (tokens :: [[Int64]], mutualRecParse :: ([[Int64]]) Object)=>
     let listEnds = (tkns :: [[Int64]]) =>
         ((tkns:0) == "]") || ((tkns:0) == ")") || ((tkns:0) == "}")
 
-    if tokens.length == 0 then fail("End of tokens in parseArgList")
+    if length(tokens) == 0 then fail("End of tokens in parseArgList")
     else if listEnds(tokens) then
         { ast: [], rest: tokens, wellFormed: true }
     else
@@ -168,14 +168,14 @@ let parseObjectInternalList = (tokens :: [[Int64]],
     let listEnds = (tkns :: [[Int64]]) =>
         ((tkns:0) == "]") || ((tkns:0) == ")") || ((tkns:0) == "}")
 
-    if tokens.length < 4 then
+    if length(tokens) < 4 then
         fail("Too few tokens in parseObjectInternalList")
     else if listEnds(tokens) then 
         { ast: [], rest: tokens, wellFormed: true }
     else if !isValidId(tokens:0) || (tokens:1) != ":" then
         fail("Need an ID followed by ':' in an object field")
     else
-        let elem = mutualRecParse(tokens:(2..tokens.length))
+        let elem = mutualRecParse(tokens:(2..length(tokens)))
         if !elem.wellFormed then fail(elem.error) else
         if listEnds(elem.rest) then
             { ast: [{ identifier: (tokens:0), value: elem.ast }],
@@ -194,14 +194,14 @@ let parseDotsAndCalls = (expr :: Object,
                          tokens :: [[Int64]],
                          mutualRecParse :: ([[[Int64]]], [[Int64]]) Object) =>
     let defaultCase = { ast: expr, rest: tokens, wellFormed: true }
-    if tokens.length > 0 && (tokens:0) == "." then
-        if (tokens.length < 2) || (!isValidId(tokens:1)) then
+    if length(tokens) > 0 && (tokens:0) == "." then
+        if (length(tokens) < 2) || (!isValidId(tokens:1)) then
             fail("Not a valid field lookup")
         else
             let next = { type: "field_access", obj: expr, field: (tokens:1) }
             recur(next, restOf(restOf(tokens)), mutualRecParse)
         /* TODO consider handling decimal numbers here? */
-    else if tokens.length > 0 && (tokens:0) == "(" then
+    else if length(tokens) > 0 && (tokens:0) == "(" then
         let list = parseArgList(
             restOf(tokens),
             (x :: [[Int64]]) => mutualRecParse(opsByPrec, x)
@@ -211,15 +211,15 @@ let parseDotsAndCalls = (expr :: Object,
         else
             let next = { type: "call", func: expr, args: list.ast }
             recur(next, restOf(list.rest), mutualRecParse)
-    else if tokens.length > 0 && (tokens:0) == "~" then
+    else if length(tokens) > 0 && (tokens:0) == "~" then
         let otherArg = mutualRecParse([], restOf(tokens))
         let next = { type: "call",
                      func: { type: "lookup", identifier: "~" },
                      args: [expr, otherArg.ast] }
         recur(next, otherArg.rest, mutualRecParse)
-    else if tokens.length > 0 && (tokens:0) == "</" then
+    else if length(tokens) > 0 && (tokens:0) == "</" then
         let results = ((tkns :: [[Int64]]) =>
-            if tkns.length > 0 && tkns:0 == "/>" then
+            if length(tkns) > 0 && tkns:0 == "/>" then
                 { ast: [], rest: restOf(tkns), wellFormed: true }
             else
                 let ann = parseTypeAnn(tkns)
@@ -244,7 +244,7 @@ let parseDotsAndCalls = (expr :: Object,
 let parseTypeDef = (tokens :: [[Int64]]) =>
     let recFunc = recur
     let handleStatics = (tkns :: [[Int64]]) =>
-        if tkns.length == 0 then
+        if length(tkns) == 0 then
             fail("Problem parsing statics list")
         else if tkns:0 == "|>" then
             { ast: [], rest: restOf(tkns), wellFormed: true }
@@ -268,7 +268,7 @@ let parseTypeDef = (tokens :: [[Int64]]) =>
             fail("Some problem parsing statics list: " + tkns:0)
 
     let handleParams = (tkns :: [[Int64]]) =>
-        if tkns.length == 0 then
+        if length(tkns) == 0 then
             fail("Problem parsing type params list")
         else if tkns:0 == "/>" then
             { ast: [], rest: restOf(tkns), wellFormed: true }
@@ -401,8 +401,8 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
     let recurWithFullOps = let rcr = recur; (tkns :: [[Int64]]) => 
                                                         rcr(opsByPrec, tkns)
 
-    if operations.length == 0 then
-        if tokens.length == 0 then
+    if length(operations) == 0 then
+        if length(tokens) == 0 then
             fail("End of tokens in parse")
         else if tokens:0 == "type" then
             parseTypeDef(restOf(tokens))
@@ -424,10 +424,10 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
               rest: els.rest,
               wellFormed: true }
         else if tokens:0 == "let" then
-            if tokens.length < 5 || !isValidId(tokens:1) || tokens:2 != "=" then
+            if length(tokens) < 5 || !isValidId(tokens:1) || tokens:2 != "=" then
                 fail("Malformed 'let' expression")
             else
-                let value = recur(opsByPrec, tokens:(3..tokens.length))
+                let value = recur(opsByPrec, tokens:(3..length(tokens)))
                 if !value.wellFormed then fail(value.error) else
                 if !checkFor(value.rest, ";") then
                     fail("Missing semicolon or newline after value of 'let',"
@@ -458,9 +458,9 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
                   rest: restOf(list.rest),
                   wellFormed: true }
         else if tokens:0 == "(" then
-            if tokens.length >= 4 && ((tokens:1) == ")")
+            if length(tokens) >= 4 && ((tokens:1) == ")")
                                   && ((tokens:2) == "=>") then
-                let body = recurWithFullOps(tokens:(3..tokens.length))
+                let body = recurWithFullOps(tokens:(3..length(tokens)))
                 if !body.wellFormed then fail(body.error) else
                 { ast: { type: "lambda",
                          params: [],
@@ -468,7 +468,7 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
                          body: body.ast },
                   rest: body.rest,
                   wellFormed: true }
-            else if (tokens.length >= 4) && isValidId(tokens:1) 
+            else if (length(tokens) >= 4) && isValidId(tokens:1) 
                            &&(tokens:2) == "::" then
                         /* TODO change here if we make annotation optional */
                 let list = parseParamList(restOf(tokens))
@@ -524,14 +524,14 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
                      value: utils.atoi(tokens:0) },
               rest: restOf(tokens),
               wellFormed: true }
-        else if (tokens:0).length >= 2 && ((tokens:0):0)==34 
-                                && ((tokens:0):((tokens:0).length-1)==34) then
-            if (tokens:0).length == 2 then 
+        else if length(tokens:0) >= 2 && ((tokens:0):0)==34 
+                                && ((tokens:0):(length(tokens:0)-1)==34) then
+            if length(tokens:0) == 2 then 
                 { ast: { type: "array", contents: [] },
                   rest: restOf(tokens),
                   wellFormed: true }
             else
-                let str = (tokens:0):(1..((tokens:0).length-1))
+                let str = (tokens:0):1..(length(tokens:0)-1)
                 { ast: { type: "array",
                          contents: ((x :: Int64) =>
                                         {type: "number", value: x}) $ str },
@@ -547,11 +547,11 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
               wellFormed: true }
         else
             fail("Invalid token '" + (tokens:0) + "' before '"
-               + (if tokens.length > 1 then tokens:1 else "") + "'")
+               + (if length(tokens) > 1 then tokens:1 else "") + "'")
     else
         let left = recur(restOfOps(operations), tokens)
         if !left.wellFormed then fail(left.error) else
-        if left.rest.length == 0 || !utils.in(left.rest:0, operations:0) then
+        if length(left.rest) == 0 || !utils.in(left.rest:0, operations:0) then
             left
         else if utils.in(left.rest:0, [".", "(", "~", "</"]) then
             parseDotsAndCalls(left.ast, left.rest, recur)
@@ -577,14 +577,14 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
 let parseWithImports = (tokens :: [[Int64]]) =>
     if tokens:0 == "import" then
         /* TODO consider allowing a string as the value you import from? */
-        if tokens.length < 4 || !isValidId(tokens:1) then
+        if length(tokens) < 4 || !isValidId(tokens:1) then
             fail("Malformed import statement")
-        else if (tokens.length >= 6) && ((tokens:2) == "as")
+        else if (length(tokens) >= 6) && ((tokens:2) == "as")
                                      && isValidId(tokens:3) then
-            if !checkFor(tokens:(4..tokens.length), ";") then
+            if !checkFor(tokens:(4..length(tokens)), ";") then
                 fail("Missing semicolon or newline in import")
             else
-                let body = recur(tokens:(5..tokens.length))
+                let body = recur(tokens:(5..length(tokens)))
                 if !body.wellFormed then fail(body.error) else
                 { ast: { type: "import",
                          module: tokens:1,
@@ -593,10 +593,10 @@ let parseWithImports = (tokens :: [[Int64]]) =>
                   rest: body.rest,
                   wellFormed: true }
         else
-            if !checkFor(tokens:(2..tokens.length), ";") then
+            if !checkFor(tokens:(2..length(tokens)), ";") then
                 fail("Missing semicolon or newline in import")
             else
-                let body = recur(tokens:(3..tokens.length))
+                let body = recur(tokens:(3..length(tokens)))
                 if !body.wellFormed then fail(body.error) else
                 { ast: { type: "import",
                          module: tokens:1,
@@ -636,7 +636,7 @@ let resolveModule = (currentModule :: [Int64], newModuleName :: [Int64]) =>
 let stripPath = (moduleName :: [Int64]) =>
     let slashIndex = utils.lastCharIndex(moduleName, 47)
     if slashIndex < 0 then moduleName 
-                      else moduleName:((slashIndex+1)..moduleName.length)
+                      else moduleName:((slashIndex+1)..length(moduleName))
 
 
 let loadProgramAndImports = (module :: [Int64]) =>
@@ -677,10 +677,10 @@ let loadProgramAndImports = (module :: [Int64]) =>
  * same name (filename minus the extension). Will need to improve it later. */
 let generateFinalProgram = (modules :: [Object]) =>
     if modules == [] then fail("No program!")
-    else if modules.length == 1 then
+    else if length(modules) == 1 then
         { ast: (modules:0).value, wellFormed: true }
     else
-        let body = recur(modules:(1..modules.length))
+        let body = recur(modules:(1..length(modules)))
         if !body.wellFormed then body else
         { ast: { type: "assignment",
                  identifier: "module " + (modules:0).name,

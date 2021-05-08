@@ -12,8 +12,8 @@ let isEOL = (c :: Int64) => c == 10 || c == 13 || c == 59 /* \n, \r, ; */
 
 let charsGoTogether = (a :: [Int64], b :: Int64) =>
     if a == "" then true else
-        ((a:0 == 34) && (if a.length == 1 then true else if a == "" then false
-                         else ((a:(a.length-1) != 34)||(a:(a.length-2) == 92))))
+        ((a:0 == 34) && (if length(a) == 1 then true else if a == "" then false
+                         else ((a:(length(a)-1) != 34)||(a:(length(a)-2) == 92))))
      || (isLetterOrUnderscore(a:0) && isLetterDigitOrUnderscore(b))
      || (isDigit(a:0) && isDigit(b))
      || (isEOL(a:0) && isEOL(b))
@@ -26,16 +26,16 @@ let charsGoTogether = (a :: [Int64], b :: Int64) =>
      || (a == "|" && b == 62) || (a == "<" && b == 124)
      || (a == "-" && b == 62) || (a == "+" && b == 43)
      || (a == "<" && b == 47) || (a == "/" && b == 62)
-     || (if a.length >= 2 then (a:(0..2)) == "/*"
-                       && (a:((a.length-2)..a.length)) !="*/" else false)
+     || (if length(a) >= 2 then (a:(0..2)) == "/*"
+                       && (a:((length(a)-2)..length(a))) !="*/" else false)
 
 /* whitespace != \n, \r */
 let skip = (c :: Int64) => (c <= 32) && (c != 10) && (c != 13)
 
 let tokenize = (currentTokenPart :: [Int64], chars :: [Int64]) =>
-    if chars.length <= 0 then
+    if length(chars) <= 0 then
         if currentTokenPart == "" then [] else [currentTokenPart]
-    else if chars.length == 1 then
+    else if length(chars) == 1 then
         if charsGoTogether(currentTokenPart, chars : 0) then
             [currentTokenPart + chars]
         else if skip(chars : 0) then
@@ -44,11 +44,11 @@ let tokenize = (currentTokenPart :: [Int64], chars :: [Int64]) =>
             [currentTokenPart] + [chars]
     else
         if charsGoTogether(currentTokenPart, chars : 0) then
-            recur(currentTokenPart + chars : [0], chars : 1..chars.length)
+            recur(currentTokenPart + chars : [0], chars : 1..length(chars))
         else if skip(chars : 0) then
-            [currentTokenPart] + recur("", chars : 1..chars.length)
+            [currentTokenPart] + recur("", chars : 1..length(chars))
         else
-            [currentTokenPart] + recur(chars : [0], chars : 1..chars.length)
+            [currentTokenPart] + recur(chars : [0], chars : 1..length(chars))
 
 let simplifyToken = (t :: [Int64]) => if isEOL(t:0) then ";" else t
 
@@ -61,12 +61,12 @@ let mergeKeywordsBefore = ["if", "import", "let", "(", "[", "{", "<|"]
 let mergeKeywordsAfter = ["|>", ")", "}", "]"] + mergeKeywords
 
 let merge = (token :: [Int64], list :: [[Int64]]) =>
-    if token.length >= 2 && (token:(0..2)) == "/*" then list else
-    if list.length == 0 && token == ";" then [] else
-    if list.length == 0 then [token] else
+    if length(token) >= 2 && (token:(0..2)) == "/*" then list else
+    if length(list) == 0 && token == ";" then [] else
+    if length(list) == 0 then [token] else
     if token == " " then list else
     if utils.in(token, mergeKeywordsBefore) && ((list:0) == ";") then 
-        [token] + (if list.length > 1 then (list:(1..list.length)) else [])
+        [token] + (if length(list) > 1 then (list:(1..length(list))) else [])
     else if utils.in(list:0, mergeKeywordsAfter) && token == ";" then
         list
     else
@@ -75,7 +75,7 @@ let merge = (token :: [Int64], list :: [[Int64]]) =>
 /* Just export this function */
 (program :: [Int64]) =>
     let tokens = merge @> (simplifyToken $ tokenize("", program)) []
-    if tokens.length > 0 && (tokens:0 == ";") then 
-        (tokens:(1..tokens.length))
+    if length(tokens) > 0 && (tokens:0 == ";") then 
+        (tokens:(1..length(tokens)))
     else
         tokens

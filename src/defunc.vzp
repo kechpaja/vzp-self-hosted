@@ -13,11 +13,11 @@ let unops = [ "!", "unary -", "length" ]
 let corefuncs = [ "slow=", "slow+", "$", "@>", "<@", "print", "[]" ]
 
 let unique = (list :: [[Int64]]) :: [[Int64]] =>
-    if list.length == 0 then [] else
-    if list.length == 1 then
+    if length(list) == 0 then [] else
+    if length(list) == 1 then
         if utils.in(list:0, ["true", "false", "recur"]) then [] else list
     else
-    let rec = recur(list:(1..list.length))
+    let rec = recur(list:(1..length(list)))
     if utils.in(list:0, rec + ["true", "false", "recur"]) then 
         rec
     else
@@ -93,7 +93,7 @@ let defunc_main = (ast :: TransformedAst,
                 TransformedAst.conditional -> elseFunc(),
                 TransformedAst.field_access -> elseFunc(),
                 TransformedAst.lambda -> elseFunc(),
-                TransformedAst.lookup -> if args.asts.length == 2
+                TransformedAst.lookup -> if length(args.asts) == 2
                                       && utils.in(that.identifier, binops) then
                         DefuncWrapper(JsAst.binop(that.identifier,
                                                   args.asts:0,
@@ -102,7 +102,7 @@ let defunc_main = (ast :: TransformedAst,
                                       args.closure,
                                       args.builtins,
                                       args.count)
-                    else if args.asts.length == 1 
+                    else if length(args.asts) == 1
                                 && utils.in(that.identifier, unops) then
                         DefuncWrapper(JsAst.unop(that.identifier,
                                                  args.asts:0),
@@ -182,7 +182,7 @@ let defunc_main = (ast :: TransformedAst,
             let contents = ((i :: Int64) => IdValuePair</JsAst/>(
                                 (that.contents:i).identifier,
                                 values.asts:i
-                            )) $ 0..that.contents.length
+                            )) $ 0..length(that.contents)
             DefuncWrapper(JsAst.object(contents),
                           values.funcs,
                           values.closure,

@@ -3,7 +3,7 @@ import TransformedAst
 import desugar
 import utils
 
-let restOf = (x :: [Object]) => if x.length <= 1 then [] else x:1..x.length
+let restOf = (x :: [Object]) => if length(x) <= 1 then [] else x:1..length(x)
 
 let ctoid = (x :: Int64) => "i" + utils.itoa(x)
 
@@ -64,13 +64,13 @@ let uniqueIds = (astOuter :: Object) =>
               count: obj.count }
         else if ast.type == "lambda" then
             let augmentEnv = (params :: [[Int64]], e :: [Object], c :: Int64) =>
-                let ln = params.length
+                let ln = length(params)
                 if ln == 0 then e else
                 if ln == 1 then appendToEnv(params:0, ctoid(c), e) else
                 appendToEnv(params:0, ctoid(c), recur(params:1..ln, e, c+1))
 
             let newEnv = augmentEnv(ast.params, env, count)
-            let body = recur(ast.body, newEnv, count + ast.params.length)
+            let body = recur(ast.body, newEnv, count + length(ast.params))
             { ast: { type: "lambda",
                      params: ((x :: [Int64]) => 
                                   replaceIfInEnv(x, newEnv)) $ ast.params,

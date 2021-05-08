@@ -9,7 +9,7 @@ let params = (objList :: [Object]) => ((x :: Object) => x.param) $ objList
 let values = (objList :: [Object]) => ((x :: Object) => x.value) $ objList
 
 let restOf = (list :: [Object]) => 
-    if list.length <= 1 then [] else list:(1..list.length)
+    if length(list) <= 1 then [] else list:(1..length(list))
 
 let desugar_main = (ast :: Object) =>
     if ast.type == "array" then
