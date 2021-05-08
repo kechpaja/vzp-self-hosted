@@ -27,6 +27,9 @@ let compile_body = (ast :: JsAst, isBound :: Boolean) =>
             else if that.operation == ".." then
                 wrap("b_range(" + recTrue(that.left) + ","
                                 + recTrue(that.right) + ")")
+            else if that.operation == "==" then
+                wrap("(" + recTrue(that.left) + "==="
+                         + recTrue(that.right) + ")")
             else if that.operation == "++" then
                 wrap(recTrue(that.left) + ".concat(" + recTrue(that.right) +")")
             else if that.operation == "/" then

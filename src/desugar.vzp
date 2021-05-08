@@ -81,7 +81,7 @@ let desugar_main = (ast :: Object) =>
             if cases == [] then bottom else
             { type: "conditional",
               cond: { type: "call",
-                      func: { type: "lookup", identifier: "ref=" },
+                      func: { type: "lookup", identifier: "==" },
                       args: [recFunc((cases:0).left), 
                              { type: "call",
                                func: { type: "lookup", identifier: ":" },

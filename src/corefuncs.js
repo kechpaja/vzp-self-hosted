@@ -5,8 +5,8 @@
 
 const fs = require("fs");
 
-/* == */
-function __61__61_(closure, left, right) {
+/* slow= */
+function _slow_61_(closure, left, right) {
     if (left === right) {
         return true;
     }
@@ -17,23 +17,7 @@ function __61__61_(closure, left, right) {
         }
 
         for (let i = 0; i < left.length; i++) {
-            if (!__61__61_({}, left[i], right[i])) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    if (typeof left === "object" && typeof right === "object") {
-        if (Object.keys(left).length !== Object.keys(right).length) {
-            return false;
-        }
-
-        for (let key in left) {
-            // Since JS returns undefined when a key isn't found, this should
-            // also catch discrepencies between the sets of keys.
-            if (left.hasOwnProperty(key) && !__61__61_({}, left[key], right[key])) {
+            if (!_slow_61_({}, left[i], right[i])) {
                 return false;
             }
         }
@@ -107,11 +91,6 @@ function __91__93_(closure, left, right) {
 function _print(closure, arg) {
     console.log(String.fromCodePoint.apply(this, arg));
     return arg; // TODO ???
-}
-
-/* ref= */
-function _ref_61_(closure, left, right) {
-    return left === right;
 }
 
 

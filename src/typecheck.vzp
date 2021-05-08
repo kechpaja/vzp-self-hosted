@@ -223,21 +223,21 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   func: newFunc,
                   args: newArgs,
                   ann: unified }
-            else if newFunc.identifier == "!=" then
-                { type: "call",
-                  func: { type: "lookup", identifier: "!", ann: narrowest },
-                  args: [ { type: "call",
-                            func: { type: "lookup",
-                                    identifier: "==",
-                                    ann: newFunc.ann },
-                            args: newArgs,
-                            ann: boolean } ],
-                  ann: boolean }
             else
-                { type: "call",
-                  func: newFunc,
-                  args: newArgs,
-                  ann: boolean }
+                let op = if unified.category == "named"
+                            && unified.name == "Int64" then "==" else "slow="
+                let eqFunc = { type: "call",
+                               func: { type: "lookup",
+                                       identifier: op,
+                                       ann: newFunc.ann },
+                               args: newArgs,
+                               ann: boolean }
+                if newFunc.identifier == "!=" then
+                    { type: "call",
+                      func: { type: "lookup", identifier: "!", ann: narrowest },
+                      args: [ eqFunc ],
+                      ann: boolean }
+                else eqFunc
         else if newFunc.type == "lookup" && newFunc.identifier == "+"
                                          && newArgs.length == 2 then
             let argsType = unify((newArgs:0).ann, (newArgs:1).ann)
