@@ -699,6 +699,8 @@ let envWithBuiltins = [
     { id: "<", t: function([int64, int64], boolean) },
     { id: "<=", t: function([int64, int64], boolean) },
     { id: "+", t: function([int64, int64], int64) },
+    { id: "++",
+      t: function([array(narrowest), array(narrowest)], array(narrowest)) },
     { id: "-", t: function([int64, int64], int64) },
     { id: "*", t: function([int64, int64], int64) },
     { id: "/", t: function([int64, int64], int64) },

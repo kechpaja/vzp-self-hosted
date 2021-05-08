@@ -11,7 +11,7 @@ let escape = (id :: [Int64]) =>
     let g = (a :: [Int64], b :: [Int64]) => a + b
     "_" + (g <@ [] f $ id)
 
-let compile_body_js = (ast :: JsAst, isBound :: Boolean) =>
+let compile_body = (ast :: JsAst, isBound :: Boolean) =>
     let recTrue = let rf = recur; (x :: JsAst) => rf(x, true)
     let recFalse = let rf = recur; (x :: JsAst) => rf(x, false)
 
@@ -24,6 +24,9 @@ let compile_body_js = (ast :: JsAst, isBound :: Boolean) =>
             + recTrue(that.value) + ";" + recFalse(that.body),
         JsAst.binop -> if that.operation == ":" then
                 wrap(recTrue(that.left) + "[" + recTrue(that.right) + "]")
+            else if that.operation == ".." then
+                wrap("b_range(" + recTrue(that.left) + ","
+                                + recTrue(that.right) + ")")
             else if that.operation == "++" then
                 wrap(recTrue(that.left) + ".concat(" + recTrue(that.right) +")")
             else if that.operation == "/" then
@@ -50,13 +53,12 @@ let compile_body_js = (ast :: JsAst, isBound :: Boolean) =>
             else wrap("(" + that.operation + "(" + recTrue(that.arg) + "))")
     |>
 
-    /* TODO Unknown case in switch? */
-
-let compile_func_js = (func :: FunctionWrapper) =>
+let compile_func = (func :: FunctionWrapper) =>
     "function " + escape(func.name) + "(" + utils.join(escape $ func.params)
-                + "){" + compile_body_js(func.body, false) + "}"
+                + "){" + compile_body(func.body, false) + "}"
 
 (program_as_string :: [Int64]) =>
     let prog = defunc(program_as_string)
     let f = (a :: [Int64], b :: [Int64]) => a + b
-    (f @> (compile_func_js $ prog.funcs) compile_body_js(prog.ast, false))
+    "function b_range(x,y){return Array.from(Array(y>=x?y-x:0),(n,i)=>i+x);}"
+        + (f @> (compile_func $ prog.funcs) compile_body(prog.ast, false))

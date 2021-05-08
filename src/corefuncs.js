@@ -103,18 +103,6 @@ function __91__93_(closure, left, right) {
     throw "[] requires an array and a number or array; got '" + left + "' and '" + right + "' instead";
 }
 
-/* .. */
-function __46__46_(closure, left, right) {
-    let array = [];
-
-    while (left < right) {
-        array.push(left);
-        left += 1;
-    }
-
-    return array;
-}
-
 /* print() */
 function _print(closure, arg) {
     console.log(String.fromCodePoint.apply(this, arg));
