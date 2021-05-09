@@ -683,7 +683,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         ast
 
 /* TODO ==, !=, $, @>, and <@ can be handled with type variables, which are
- * coming in a later version. Probably handling array concat that way too. */
+ * coming in a later version. Probably handle @ and array concat that way too.*/
 let envWithBuiltins = [
     { id: "||", t: function([boolean, boolean], boolean) },
     { id: "&&", t: function([boolean, boolean], boolean) },
@@ -698,6 +698,9 @@ let envWithBuiltins = [
     { id: "*", t: function([int64, int64], int64) },
     { id: "/", t: function([int64, int64], int64) },
     { id: "%", t: function([int64, int64], int64) },
+    { id: "@",
+      t: function([narrowest, function([narrowest, narrowest], narrowest)],
+                  function([array(narrowest)], narrowest)) },
     { id: "..", t: function([int64, int64], array(int64)) },
     { id: "!", t: function([boolean], boolean) },
     { id: "unary -", t: function([int64], int64) },

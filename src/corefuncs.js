@@ -43,6 +43,8 @@ function _slow_43_(closure, left, right) {
 }
 
 /* @> */
+// TODO can probably remove this too once reducer works, although that will
+// require a bit more work since I use so many of them.
 function __64__62_(closure, one, two, three) {
     let acc = three;
     two.concat([]).reverse().forEach(function (x) {
@@ -53,6 +55,7 @@ function __64__62_(closure, one, two, three) {
 }
 
 /* <@ */
+// TODO can delete this once reducer works
 function __60__64_(closure, one, two, three) {
     let acc = two;
     three.forEach(function (x) {

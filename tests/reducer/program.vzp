@@ -1,0 +1,2 @@
+let r = 1 @ (x :: Int64, y :: Int64) => x + y
+print([r([8, 38, 1])])
