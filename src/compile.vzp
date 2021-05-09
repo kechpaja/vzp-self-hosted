@@ -9,7 +9,7 @@ let escape = (id :: [Int64]) =>
     let f = (c :: Int64) => 
         if utils.isAlnum(c) then [c] else "_" + utils.itoa(c) + "_"
     let g = (a :: [Int64], b :: [Int64]) => a + b
-    "_" + (g <@ [] f $ id)
+    "_" + (f $ id ^ [] @ g)
 
 let compile_body = (ast :: JsAst, isBound :: Boolean) =>
     let recTrue = let rf = recur; (x :: JsAst) => rf(x, true)
@@ -70,4 +70,4 @@ let compile_func = (func :: FunctionWrapper) =>
     let prog = defunc(program_as_string)
     let f = (a :: [Int64], b :: [Int64]) => a + b
     "function b_range(x,y){return Array.from(Array(y>=x?y-x:0),(n,i)=>i+x);}"
-        + (f @> (compile_func $ prog.funcs) compile_body(prog.ast, false))
+        + (compile_func $ prog.funcs ^ "" @ f + compile_body(prog.ast, false))

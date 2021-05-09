@@ -54,8 +54,8 @@ let simplifyToken = (t :: [Int64]) => if isEOL(t:0) then ";" else t
 
 /* Stuff for removing unnecessary tokens */
 let mergeKeywords = ["==", "!=", "<", "<=", ">", ">=", "||", "&&", ".", "..", 
-                     ":", "+", "++", "-", "/", "*", "%", "@>", "<@", "$", "=>",
-                     ",", ";", "then", "else", "as", "::", "->"]
+                     ":", "+", "++", "-", "/", "*", "%", "@>", "@", "$", "=>",
+                     "^", "~", ",", ";", "then", "else", "as", "::", "->"]
 let mergeKeywordsBefore = ["if", "import", "let", "(", "[", "{", "<|", "</"]
                                                                 + mergeKeywords
 let mergeKeywordsAfter = ["/>", "|>", ")", "}", "]"] + mergeKeywords

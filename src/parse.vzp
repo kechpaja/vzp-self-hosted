@@ -19,7 +19,7 @@ let opsByPrec = [ [ "||" ], /* Lowest to highest */
                   [ "+", "-", "++" ],
                   [ "*", "/", "%"  ],
                   [ "^"  ],
-                  [ "$", "@>", "<@", "@"],
+                  [ "$", "@>", "@"],
                   [ ":"  ],
                   [ ".." ],
                   [ ".", "(", "~", "</" ] ]
@@ -29,14 +29,13 @@ let isDigit = (c :: Int64) => c <= 57 && c >= 48
 let isAlpha = (c :: Int64) => (c <= 90 && c >= 65) || (c <= 122 && c >= 97)
                                                    || c == 95
 
-let isNumber = (string :: [Int64]) => 
-    (((a :: Boolean, b :: Boolean) => a && b) <@ true isDigit $ string)
+let isNumber = (string :: [Int64]) => isDigit $ string ^ true @ (&&)
 
 let isValidId = (string :: [Int64]) => 
     (length(string) > 0)
  && isAlpha(string:0)
- && ((x :: Boolean, y :: Int64) => x && (isAlpha(y) || isDigit(y))) 
-                                                    <@ true restOfString(string)
+ && restOfString(string) ^ true @ (x :: Boolean, y :: Int64) =>
+                                        x && (isAlpha(y) || isDigit(y))
 
 let fail = (error :: [Int64]) =>
     let unused = print(error)
@@ -540,7 +539,7 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
                   wellFormed: true }
         else if isValidId(tokens:0) || utils.in(
                     tokens:0, 
-                    ((a :: [[Int64]], b :: [[Int64]]) => a + b) <@ [] opsByPrec
+                    opsByPrec ^ [] @ (a :: [[Int64]], b :: [[Int64]]) => a + b
                 ) then
             { ast: { type: "lookup",
                      identifier: tokens:0 },
@@ -559,7 +558,7 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
         else
             let right = recur(operations, restOf(left.rest))
             if !right.wellFormed then fail(right.error) else
-            if !utils.in(left.rest:0, ["<@", "@>"]) then
+            if left.rest:0 != "@>" then
                 { ast: { type: "call",
                          func: { type: "lookup", identifier: left.rest:0 },
                          args: [ left.ast, right.ast ] },

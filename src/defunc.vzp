@@ -10,7 +10,7 @@ let binops = [ "==", ">", ">=", "<", "<=", "+", "-", "*", "/", "%", "++", "||",
                "&&", ":", "..", "$", "@" ]
 let unops = [ "!", "unary -", "length" ]
 
-let corefuncs = [ "slow=", "slow+", "@>", "<@", "print", "[]" ]
+let corefuncs = [ "slow=", "slow+", "@>", "print", "[]" ]
 
 let unique = (list :: [[Int64]]) :: [[Int64]] =>
     if length(list) == 0 then [] else

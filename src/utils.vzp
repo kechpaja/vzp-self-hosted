@@ -1,6 +1,6 @@
 /* TODO use isDigit to check each digit first! */
 let atoi = (string :: [Int64]) =>
-    ((x :: Int64, y :: Int64) => ((x * 10) + (y - 48))) <@ 0 string
+    string ^ 0 @ (x :: Int64, y :: Int64) => ((x * 10) + (y - 48))
 
 let itoa = (number :: Int64) =>
     (if number >= 10 then recur(number / 10) else "") + [(number % 10) + 48]

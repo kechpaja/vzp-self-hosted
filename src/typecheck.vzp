@@ -388,24 +388,6 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                          name: "type mismatch in @>: " + stringifyType(one)
                             + " " + stringifyType(two) + " "
                             + stringifyType(three) } }
-        else if newFunc.type == "lookup" && newFunc.identifier == "<@"
-                                         && length(newArgs) == 3 then
-            let one = (newArgs:0).ann
-            let two = (newArgs:1).ann
-            let three = (newArgs:2).ann
-            if one.category == "function" && length(one.params) == 2
-                    && three.category == "array"
-                    && unify(one.params:1,
-                             three.contents).category != "error" then
-                { type: "call",
-                  func: newFunc,
-                  args: newArgs,
-                  ann: unify(one.return, unify(one.params:0, two)) }
-            else
-                { type: "call",
-                  func: newFunc,
-                  args: newArgs,
-                  ann: { category: "error", name: "type mismatch in <@" } }
 
         /* TODO */
         /* Allow us to call object fields. Remove when we type object fields. */
@@ -687,7 +669,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         let asfd = print(ast)
         ast
 
-/* TODO ==, !=, $, @>, and <@ can be handled with type variables, which are
+/* TODO ==, !=, $, and @> can be handled with type variables, which are
  * coming in a later version. Probably handle @ and array concat that way too.*/
 let envWithBuiltins = [
     { id: "||", t: function([boolean, boolean], boolean) },

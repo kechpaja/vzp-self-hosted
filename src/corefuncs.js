@@ -54,17 +54,6 @@ function __64__62_(closure, one, two, three) {
     return acc;
 }
 
-/* <@ */
-// TODO can delete this once reducer works
-function __60__64_(closure, one, two, three) {
-    let acc = two;
-    three.forEach(function (x) {
-        acc = one._f(one, acc, x);
-    });
-
-    return acc;
-}
-
 /* : */
 // TODO we can get rid of this as soon as we've stopped generating calls to it
 // in the compiler. In practice, that will be once we've typed object fields.
