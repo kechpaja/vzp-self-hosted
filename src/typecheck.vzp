@@ -169,11 +169,16 @@ let typecheck = (ast :: Object, env :: [Object]) =>
           body: newBody,
           ann: newBody.ann }
     else if ast.type == "call" then
+        /* TODO Both of these will generate bad error messages, and should be
+         * re-worked a bit in the next version of the typechecker. */
         if ast.func.type == "call" && ast.func.func.type == "lookup"
-            && ast.func.func.identifier == "~" && length(ast.func.args) == 2 then
+            && ast.func.func.identifier == "~"
+            && length(ast.func.args) == 2 then
             recur({ type: "call",
                     func: ast.func.args:1,
                     args: [ast.func.args:0] + ast.args }, env)
+        else if ast.func.type == "lookup" && ast.func.identifier == "^" then
+            recur({ type: "call", func: ast.args:1, args: [ast.args:0] }, env)
         else
         let newFunc = recur(ast.func, env)
         let newArgs = recWithSameEnv $ ast.args
