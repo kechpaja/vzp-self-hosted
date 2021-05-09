@@ -1,3 +1,5 @@
+import DesugaredAst
+import IdValuePair
 import typecheck
 import utils
 
@@ -13,100 +15,82 @@ let restOf = (list :: [Object]) =>
 
 let desugar_main = (ast :: Object) =>
     if ast.type == "array" then
-        { type: "array",
-          contents: recur $ ast.contents }
+        DesugaredAst.array(recur $ ast.contents)
     else if ast.type == "assignment" then
-        { type: "assignment",
-          identifier: ast.identifier,
-          value: recur(ast.value),
-          body: recur(ast.body) }
+        DesugaredAst.assignment(ast.identifier,
+                                recur(ast.value),
+                                recur(ast.body))
     else if ast.type == "call" then
         if ast.func.ann.category == "type" then
-            { type: "array",
-              contents: [recur(ast.func)] + recur $ ast.args }
+            DesugaredAst.array([recur(ast.func)] + recur $ ast.args)
         else
-            { type: "call",
-              func: recur(ast.func),
-              args: recur $ ast.args }
+            DesugaredAst.call(recur(ast.func), recur $ ast.args)
         /* TODO Stuff with builtins for overloading? */
     else if ast.type == "conditional" then
-        { type: "conditional",
-          cond: recur(ast.cond),
-          thn: recur(ast.thn),
-          els: recur(ast.els) }
+        DesugaredAst.conditional(recur(ast.cond),
+                                 recur(ast.thn),
+                                 recur(ast.els))
     else if ast.type == "field_access" then
         if ast.obj.ann.category == "named" && ast.obj.ann.name == "Object"
                 || ast.obj.ann.category == "array" 
                 || ast.obj.ann.category == "dummy" then
-            { type: "field_access",
-              obj: recur(ast.obj),
-              field: ast.field }
+            DesugaredAst.field_access(recur(ast.obj), ast.field)
         else if ast.obj.ann.category == "type" then /* TODO do we need this? */
             let index = utils.strIndexInArray(ast.field,
                                               ids(ast.obj.ann.statics))
-            { type: "call",
-              func: { type: "lookup", identifier: ":" },
-              args: [ recur(ast.obj),
-                      { type: "number", value: index + typeOffset } ] }
+            DesugaredAst.call(
+                DesugaredAst.lookup(":"),
+                [recur(ast.obj), DesugaredAst.number(index + typeOffset)]
+            )
         else
             /* TODO someday we'll have methods here too! And defaults! */
             let index = utils.strIndexInArray(ast.field,
                                               params(ast.obj.ann.fields))
-            { type: "call", /* TODO got to add a subscript variant */
-              func: { type: "lookup", identifier: ":" },
-              args: [ recur(ast.obj), 
-                      { type: "number", value: index + objectOffset } ] }
+            DesugaredAst.call(
+                DesugaredAst.lookup(":"),
+                [recur(ast.obj), DesugaredAst.number(index + objectOffset)]
+            )
     else if ast.type == "lambda" then
-        { type: "lambda",
-          params: ast.params,
-          body: recur(ast.body) }
+        DesugaredAst.lambda(ast.params, recur(ast.body))
     else if ast.type == "lookup" then
-        { type: "lookup",
-          identifier: ast.identifier }
+        DesugaredAst.lookup(ast.identifier)
     else if ast.type == "number" then
-        { type: "number",
-          value: ast.value }
+        DesugaredAst.number(ast.value)
     else if ast.type == "object" then
         let recFunc = recur
-        { type: "object",
-          contents: ((x :: Object) => { 
-              identifier: x.identifier,
-              value: recFunc(x.value)
-          }) $ ast.contents }
+        DesugaredAst.object(((x :: Object) =>
+            IdValuePair</DesugaredAst/>(x.identifier, recFunc(x.value))
+        ) $ ast.contents)
     else if ast.type == "switch" then
         /* XXX This only works for single-level types. It needs to be expanded.
          * Need to do something like "is subtype of" as well as instance of. */
         let recFunc = recur
-        let handleCases = (cases :: [Object], bottom :: Object) =>
+        let handleCases = (cases :: [Object], bottom :: DesugaredAst) =>
             if cases == [] then bottom else
-            { type: "conditional",
-              cond: { type: "call",
-                      func: { type: "lookup", identifier: "==" },
-                      args: [recFunc((cases:0).left), 
-                             { type: "call",
-                               func: { type: "lookup", identifier: ":" },
-                               args: [{ type: "lookup", identifier: "x x" },
-                                      { type: "number", value: 0 }] }] },
-              thn: { type: "assignment",
-                     identifier: "that",
-                     value: { type: "lookup", identifier: "x x" },
-                     body: recFunc((cases:0).right) },
-              els: recur(restOf(cases), bottom) }
+            DesugaredAst.conditional(
+                DesugaredAst.call(
+                    DesugaredAst.lookup("=="),
+                    [recFunc((cases:0).left),
+                     DesugaredAst.call(
+                        DesugaredAst.lookup(":"),
+                        [DesugaredAst.lookup("x x"), DesugaredAst.number(0)])]
+                ),
+                DesugaredAst.assignment("that",
+                                        DesugaredAst.lookup("x x"),
+                                        recFunc((cases:0).right)),
+                recur(restOf(cases), bottom)
+            )
 
-        { type: "assignment",
-          identifier: "x x",
-          value: recur(ast.expr),
-          body: handleCases(ast.cases, recur(ast.els)) }
-    else if ast.type == "type" then
+        DesugaredAst.assignment("x x",
+                                recur(ast.expr),
+                                handleCases(ast.cases, recur(ast.els)))
+    else /* type */
         /* This will not allow for inheritance. Giving each type a pointer back
          * to its supertype will require mutation, which I'm not ready to put
          * in at this point. But we can change that later when we actually have
          * methods, and we might just stick all the methods in every type or
          * something like that as a hack at first. */
-        { type: "array",
-          contents: recur $ values(ast.statics) }
-    else
-        ast
+        DesugaredAst.array(recur $ values(ast.statics))
 
 
 (module_name :: [Int64]) => desugar_main(typecheck(module_name))

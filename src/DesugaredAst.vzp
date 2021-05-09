@@ -1,0 +1,38 @@
+import IdValuePair
+
+type <|
+    array {
+        contents :: [self]
+    },
+    assignment {
+        identifier :: [Int64],
+        value :: self,
+        body :: self
+    },
+    call {
+        func :: self,
+        args :: [self]
+    },
+    conditional {
+        cond :: self,
+        thn :: self,
+        els :: self
+    },
+    field_access {
+        obj :: self,
+        field :: [Int64]
+    },
+    lambda {
+        params :: [[Int64]],
+        body :: self
+    },
+    lookup {
+        identifier :: [Int64]
+    },
+    number {
+        value :: Int64
+    },
+    object {
+        contents :: [IdValuePair</self/>]
+    }
+|>

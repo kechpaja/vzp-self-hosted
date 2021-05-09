@@ -1,151 +1,193 @@
+import DesugaredAst
 import IdValuePair
 import TransformedAst
 import desugar
 import utils
 
-let restOf = (x :: [Object]) => if length(x) <= 1 then [] else x:1..length(x)
-
 let ctoid = (x :: Int64) => "i" + utils.itoa(x)
 
+let UniquedWrapper = type {
+    ast :: DesugaredAst,
+    count :: Int64
+}
+
+let UniquedListWrapper = type {
+    ast :: [DesugaredAst],
+    count :: Int64
+}
+
+let UniquedObjectListWrapper = type {
+    ast :: [IdValuePair</DesugaredAst/>],
+    count :: Int64
+}
+
 /* Run through AST and add something to IDs to make them unique */
-let uniqueIds = (astOuter :: Object) =>
-    ((ast :: Object, env :: [Object], count :: Int64) =>
-        let replaceIfInEnv = (id :: [Int64], e :: [Object]) =>
+let uniqueIds = (astOuter :: DesugaredAst) =>
+    ((ast :: DesugaredAst, env :: [IdValuePair</[Int64]/>], count :: Int64) =>
+        let replaceIfInEnv = (id :: [Int64], e :: [IdValuePair</[Int64]/>]) =>
             if e == [] then id else 
-            if (e:0).orig == id then (e:0).new else recur(id, restOf(e))
-        let appendToEnv = (orig :: [Int64], new :: [Int64], e :: [Object]) =>
-            [{ orig: orig, new: new }] + e
+            if (e:0).identifier == id then (e:0).value
+                                      else recur(id, e:1..length(e))
+        let appendToEnv = (orig :: [Int64],
+                           new :: [Int64],
+                           e :: [IdValuePair</[Int64]/>]) =>
+            [IdValuePair</[Int64]/>(orig, new)] + e
 
         let recFunc = recur
-        let argRec = (args :: [Object], c :: Int64) =>
-            let f = (x :: Object, saved :: Object) =>
+        let argRec = (args :: [DesugaredAst], c :: Int64) =>
+            let f = (x :: DesugaredAst, saved :: UniquedListWrapper) =>
                 let arg = recFunc(x, env, saved.count)
-                { ast: [arg.ast] + saved.ast, count: arg.count }
-            f @> args { ast: [], count: c }
+                UniquedListWrapper([arg.ast] + saved.ast, arg.count)
+            f @> args UniquedListWrapper([], c)
 
-        if ast.type == "array" then
-            let contents = argRec(ast.contents, count)
-            { ast: { type: "array",
-                     contents: contents.ast },
-              count: contents.count }
-        else if ast.type == "assignment" then
-            let value = recur(ast.value, env, count + 1)
-            let body = recur(ast.body,
-                             appendToEnv(ast.identifier,
-                                         ctoid(count),
-                                         env),
-                             value.count)
-            { ast: { type: "assignment",
-                     identifier: ctoid(count),
-                     value: value.ast,
-                     body: body.ast },
-              count: body.count }
-        else if ast.type == "call" then
-            let func = recur(ast.func, env, count)
-            let args = argRec(ast.args, func.count)
-            { ast: { type: "call",
-                     func: func.ast,
-                     args: args.ast },
-              count: args.count }
-        else if ast.type == "conditional" then
-            let cond = recur(ast.cond, env, count)
-            let thn = recur(ast.thn, env, cond.count)
-            let els = recur(ast.els, env, thn.count)
-            { ast: { type: "conditional",
-                     cond: cond.ast,
-                     thn: thn.ast,
-                     els: els.ast },
-              count: els.count }
-        else if ast.type == "field_access" then
-            let obj = recur(ast.obj, env, count)
-            { ast: { type: "field_access",
-                     obj: obj.ast,
-                     field: ast.field },
-              count: obj.count }
-        else if ast.type == "lambda" then
-            let augmentEnv = (params :: [[Int64]], e :: [Object], c :: Int64) =>
-                let ln = length(params)
-                if ln == 0 then e else
-                if ln == 1 then appendToEnv(params:0, ctoid(c), e) else
-                appendToEnv(params:0, ctoid(c), recur(params:1..ln, e, c+1))
+        switch ast <|
+            DesugaredAst.array ->
+                let contents = argRec(that.contents, count)
+                UniquedWrapper(DesugaredAst.array(contents.ast), contents.count),
+            DesugaredAst.assignment ->
+                let value = recur(that.value, env, count + 1)
+                let body = recur(that.body,
+                                 appendToEnv(that.identifier,
+                                             ctoid(count),
+                                             env),
+                                 value.count)
+                UniquedWrapper(
+                    DesugaredAst.assignment(ctoid(count), value.ast, body.ast),
+                    body.count
+                ),
+            DesugaredAst.call ->
+                let fn = recur(that.func, env, count)
+                let args = argRec(that.args, fn.count)
+                UniquedWrapper(DesugaredAst.call(fn.ast, args.ast), args.count),
+            DesugaredAst.conditional ->
+                let c = recur(that.cond, env, count)
+                let t = recur(that.thn, env, c.count)
+                let e = recur(that.els, env, t.count)
+                UniquedWrapper(DesugaredAst.conditional(c.ast, t.ast, e.ast),
+                               e.count),
+            DesugaredAst.field_access ->
+                let obj = recur(that.obj, env, count)
+                UniquedWrapper(DesugaredAst.field_access(obj.ast, that.field),
+                               obj.count),
+            DesugaredAst.lambda ->
+                let augmentEnv = (params :: [[Int64]],
+                                  e :: [IdValuePair</[Int64]/>],
+                                  c :: Int64) =>
+                    let ln = length(params)
+                    if ln == 0 then e else
+                    if ln == 1 then appendToEnv(params:0, ctoid(c), e) else
+                    appendToEnv(params:0, ctoid(c), recur(params:1..ln, e, c+1))
+                let newEnv = augmentEnv(that.params, env, count)
+                let body = recur(that.body, newEnv, count + length(that.params))
+                UniquedWrapper(DesugaredAst.lambda(
+                    ((x :: [Int64]) => replaceIfInEnv(x, newEnv)) $ that.params,
+                    body.ast
+                ), body.count),
+            DesugaredAst.lookup ->
+                UniquedWrapper(
+                    DesugaredAst.lookup(replaceIfInEnv(that.identifier, env)),
+                    count
+                ),
+            DesugaredAst.number ->
+                UniquedWrapper(DesugaredAst.number(that.value), count),
+            DesugaredAst.object ->
+                let f = (pair :: IdValuePair</DesugaredAst/>,
+                         saved :: UniquedObjectListWrapper) =>
+                    let newValue = recFunc(pair.value, env, saved.count)
+                    let newPair = IdValuePair</DesugaredAst/>(pair.identifier,
+                                                              newValue.ast)
+                    UniquedObjectListWrapper([newPair] + saved.ast,
+                                             newValue.count)
+                let contents = f @> that.contents UniquedObjectListWrapper(
+                    [],
+                    count
+                )
+                UniquedWrapper(DesugaredAst.object(contents.ast),
+                               contents.count)
+        |>)(astOuter, [], 0).ast
 
-            let newEnv = augmentEnv(ast.params, env, count)
-            let body = recur(ast.body, newEnv, count + length(ast.params))
-            { ast: { type: "lambda",
-                     params: ((x :: [Int64]) => 
-                                  replaceIfInEnv(x, newEnv)) $ ast.params,
-                     body: body.ast },
-              count: body.count }
-        else if ast.type == "lookup" then
-            { ast: { type: "lookup",
-                     identifier: replaceIfInEnv(ast.identifier, env) },
-              count: count }
-        else if ast.type == "object" then
-            let f = (pair :: Object, saved :: Object) =>
-                let newValue = recFunc(pair.value, env, saved.count)
-                let newPair = { identifier: pair.identifier,
-                                value: newValue.ast }
-                { ast: [newPair] + saved.ast, count: newValue.count }
+let idfun = (x :: TransformedAst) => x
 
-            let contents = f @> ast.contents { ast: [], count: count }
-            { ast: { type: "object", contents: contents.ast },
-              count: contents.count }
-        else
-            { ast: ast, count: count })(astOuter, [], 0).ast
-
-let idfunc = (x :: TransformedAst) => x
-
-let transform_main = (ast :: Object,
+let transform_main = (ast :: DesugaredAst,
                       binder :: (TransformedAst) TransformedAst) =>
     let recFunc = recur
-    let doList = (f :: (Object, (TransformedAst) TransformedAst) TransformedAst,
-                  list :: [Object],
-                  new :: [TransformedAst],
-                  b :: ([TransformedAst]) TransformedAst) =>
+    let doList = (
+        f :: (DesugaredAst, (TransformedAst) TransformedAst) TransformedAst,
+        list :: [DesugaredAst],
+        new :: [TransformedAst],
+        b :: ([TransformedAst]) TransformedAst
+    ) =>
         if list == [] then b(new) else
         let innerRec = recur
-        f(list:0,
-          (x :: TransformedAst) => innerRec(f, restOf(list), new + [x], b))
+        f(list:0, (x :: TransformedAst) =>
+                    innerRec(f, list:1..length(list), new + [x], b))
 
-    if ast.type == "array" then
-        doList(recur,
-               ast.contents,
-               [],
-               (x :: [TransformedAst]) => binder(TransformedAst.array(x)))
-    else if ast.type == "assignment" then
-        let body = recur(ast.body, binder)
-        recur(ast.value, (x :: TransformedAst) =>
-                            TransformedAst.assignment(ast.identifier, x, body))
-    else if ast.type == "call" then
-        recur(ast.func, (func :: TransformedAst) => doList(
-            recFunc,
-            ast.args,
-            [],
-            (args :: [TransformedAst]) => binder(TransformedAst.call(func,args))
-        ))
-    else if ast.type == "conditional" then
-        let thn = recur(ast.thn, binder)
-        let els = recur(ast.els, binder)
-        recur(ast.cond, (x :: TransformedAst) => 
-                            TransformedAst.conditional(x, thn, els))
-    else if ast.type == "field_access" then
-        recur(ast.obj, (x :: TransformedAst) =>
-                            binder(TransformedAst.field_access(x, ast.field)))
-    else if ast.type == "lambda" then
-        binder(TransformedAst.lambda(ast.params, recur(ast.body, idfunc)))
-    else if ast.type == "lookup" then
-        binder(TransformedAst.lookup(ast.identifier))
-    else if ast.type == "number" then
-        binder(TransformedAst.number(ast.value))
-    else /* Has to be an object if we get here */
-        let f = (pair :: Object,
-                 b :: (TransformedAst) TransformedAst) => recFunc(
-            pair.value, 
-            (x :: TransformedAst) => 
-                b(IdValuePair</TransformedAst/>(pair.identifier, x))
-        )
-        doList(f, ast.contents, [], (x :: TransformedAst) => 
-                                        binder(TransformedAst.object(x)))
+    let doObjList = (
+        f :: (IdValuePair</DesugaredAst/>,
+              (IdValuePair</TransformedAst/>) TransformedAst) TransformedAst,
+        list :: [IdValuePair</DesugaredAst/>],
+        new :: [IdValuePair</TransformedAst/>],
+        b :: ([IdValuePair</TransformedAst/>]) TransformedAst
+    ) =>
+        if list == [] then b(new) else
+        let innerRec = recur
+        f(list:0, (x :: IdValuePair</TransformedAst/>) =>
+                    innerRec(f, list:1..length(list), new + [x], b))
+
+    switch ast <|
+        DesugaredAst.array ->
+            doList(recur,
+                   that.contents,
+                   [],
+                   (x :: [TransformedAst]) => binder(TransformedAst.array(x))),
+        DesugaredAst.assignment ->
+            let body = recur(that.body, binder)
+            recur(
+                that.value,
+                (x :: TransformedAst) => TransformedAst.assignment(
+                    that.identifier,
+                    x,
+                    body
+                )
+            ),
+        DesugaredAst.call ->
+            recur(that.func, (func :: TransformedAst) => doList(
+                recFunc,
+                that.args,
+                [],
+                (args :: [TransformedAst]) =>
+                    binder(TransformedAst.call(func, args))
+            )),
+        DesugaredAst.conditional ->
+            let thn = recur(that.thn, binder)
+            let els = recur(that.els, binder)
+            recur(
+                that.cond,
+                (x :: TransformedAst) => TransformedAst.conditional(x, thn, els)
+            ),
+        DesugaredAst.field_access ->
+            recur(that.obj, (x :: TransformedAst) => binder(
+                TransformedAst.field_access(x, that.field)
+            )),
+        DesugaredAst.lambda ->
+            binder(TransformedAst.lambda(that.params, recur(that.body, idfun))),
+        DesugaredAst.lookup -> binder(TransformedAst.lookup(that.identifier)),
+        DesugaredAst.number -> binder(TransformedAst.number(that.value)),
+        DesugaredAst.object ->
+            let f = (
+                pair :: IdValuePair</DesugaredAst/>,
+                b :: (IdValuePair</TransformedAst/>) TransformedAst
+            ) => recFunc(
+                pair.value,
+                (x :: TransformedAst) =>
+                    b(IdValuePair</TransformedAst/>(pair.identifier, x))
+            )
+            doObjList(f,
+                      that.contents,
+                      [],
+                      (x :: [IdValuePair</TransformedAst/>]) =>
+                          binder(TransformedAst.object(x)))
+    |>
 
 (program_as_string :: [Int64]) =>
-    transform_main(uniqueIds(desugar(program_as_string)), (x :: TransformedAst) => x)
+    transform_main(uniqueIds(desugar(program_as_string)), idfun)

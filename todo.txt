@@ -101,3 +101,5 @@ Some other long-term ideas:
 Passing == as a function doesn't work yet, since it will end up checking only
 identity in that case. It may have to stay a corefunc for longer, or perhaps it
 can get split in a future version of the typechecker at some point.
+
+Parametrized types can currenty only handle one level. 
