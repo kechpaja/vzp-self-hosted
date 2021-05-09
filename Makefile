@@ -39,3 +39,6 @@ test:
 
 clean:
 	$(RM) -rf versions/00-testing
+
+version:
+	@ls versions/ | sort -V | tail -n 1
