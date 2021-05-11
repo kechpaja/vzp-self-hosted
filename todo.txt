@@ -73,15 +73,9 @@ some point, but those need to be batched as they will require a fair bit of
 work on my part to change things in the compiler. For now, the ones I'm
 thinking of are:
 
- - The + operator should no longer be overloaded. Possibly continue to allow it
-   to be overloaded when called directly on two arrays, but when passed as a
-   function it should always be for numbers only.
-
  - Array access should no longer use :. Consider either more traditional syntax
    or treating arrays as callable on integers; the latter may be preferable
    since it allows us to use $ and other functions.
-
- - Require a comma between the second and third arguments of @> and <@.
 
  - More that I can't think of right now.
 
