@@ -7,11 +7,11 @@ let itoa = (number :: Int64) =>
 
 /* TODO inefficient TODO types */
 let in = (x :: [Int64], collection :: [[Int64]]) =>
-    || @> ((y :: [Int64]) => x == y) $ collection false
+    ((y :: [Int64]) => x == y) $ collection ^ false @ (||)
 
 let join = (alos :: [[Int64]]) =>
-    ((x :: [Int64], y :: [Int64]) =>
-        (if y == "" then x else x + ", " + y)) @> alos ""
+    alos ^ "" @ (x :: [Int64], y :: [Int64]) =>
+        if x == "" then y else x + ", " + y
 
 
 let isDigit = (c :: Int64) => c <= 57 && c >= 48

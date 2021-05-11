@@ -10,7 +10,7 @@ let binops = [ "==", ">", ">=", "<", "<=", "+", "-", "*", "/", "%", "++", "||",
                "&&", ":", "..", "$", "@" ]
 let unops = [ "!", "unary -", "length" ]
 
-let corefuncs = [ "slow=", "slow+", "@>", "print", "[]" ]
+let corefuncs = [ "slow=", "slow+", "print", "[]" ]
 
 let unique = (list :: [[Int64]]) :: [[Int64]] =>
     if length(list) == 0 then [] else
@@ -44,15 +44,18 @@ let listRec = (list :: [TransformedAst],
                f :: (TransformedAst, [[Int64]], Int64) DefuncWrapper,
                env :: [[Int64]],
                count :: Int64) :: ListRecWrapper =>
-    ((a :: TransformedAst, saved :: ListRecWrapper) :: ListRecWrapper =>
+    list ^ ListRecWrapper([], [], [], [], count) @ (
+        saved :: ListRecWrapper,
+        a :: TransformedAst
+    ) :: ListRecWrapper =>
         let handled = f(a, env, saved.count)
         ListRecWrapper(
-            [handled.ast] + saved.asts,
-            handled.funcs + saved.funcs,
-            handled.closure + saved.closure,
-            handled.builtins + saved.builtins,
+            saved.asts + [handled.ast],
+            saved.funcs + handled.funcs,
+            saved.closure + handled.closure,
+            saved.builtins + handled.builtins,
             handled.count
-        )) @> list ListRecWrapper([], [], [], [], count)
+        )
 
 let defunc_main = (ast :: TransformedAst,
                    env :: [[Int64]],
@@ -133,11 +136,12 @@ let defunc_main = (ast :: TransformedAst,
         TransformedAst.lambda ->
             let body = recur(that.body, that.params, count + 1)
             let closureIds = unique(body.closure)
-            let newBody = ((x :: [Int64], inner :: JsAst) => JsAst.assignment(
-                x,
-                JsAst.field_access(JsAst.lookup("f"), x),
-                inner
-            )) @> closureIds body.ast
+            let newBody = closureIds ^ body.ast @ (
+                inner :: JsAst,
+                x :: [Int64]
+            ) => JsAst.assignment(x,
+                                  JsAst.field_access(JsAst.lookup("f"), x),
+                                  inner)
             let closure = ((x :: [Int64]) => IdValuePair</JsAst/>(
                 x,
                 JsAst.lookup(x)
@@ -152,9 +156,8 @@ let defunc_main = (ast :: TransformedAst,
                                                JsAst.lookup("f"),
                                                newBody)
                           )] + body.funcs,
-                          ((x :: [Int64], list :: [[Int64]]) =>
-                              if utils.in(x, env) then list else [x] + list
-                          ) @> closureIds [],
+                          closureIds ^ [] @ (list :: [[Int64]], x :: [Int64]) =>
+                                  if utils.in(x, env) then list else list + [x],
                           body.builtins,
                           body.count),
         TransformedAst.lookup ->
@@ -197,7 +200,7 @@ let DefuncedProgram = type {
 
 (program_as_string :: [Int64]) =>
     let firstStep = defunc_main(transform(program_as_string), [], 0)
-    let addLets = (operation :: [Int64], ast :: JsAst) =>
+    let addLets = (ast :: JsAst, operation :: [Int64]) =>
         JsAst.assignment(
             operation,
             JsAst.object([
@@ -217,5 +220,5 @@ let DefuncedProgram = type {
                                         JsAst.lookup("x"),
                                         JsAst.lookup("y")))
     let liftedBuiltins = unique(firstStep.builtins)
-    DefuncedProgram(addLets @> liftedBuiltins firstStep.ast,
+    DefuncedProgram(liftedBuiltins ^ firstStep.ast @ addLets,
                     (generateFuncs $ liftedBuiltins) + firstStep.funcs)

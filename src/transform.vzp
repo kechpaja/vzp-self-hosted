@@ -34,11 +34,13 @@ let uniqueIds = (astOuter :: DesugaredAst) =>
             [IdValuePair</[Int64]/>(orig, new)] + e
 
         let recFunc = recur
-        let argRec = (args :: [DesugaredAst], c :: Int64) =>
-            let f = (x :: DesugaredAst, saved :: UniquedListWrapper) =>
+        let argRec = (args :: [DesugaredAst],
+                      c :: Int64) :: UniquedListWrapper =>
+            let f = (saved :: UniquedListWrapper,
+                     x :: DesugaredAst) :: UniquedListWrapper =>
                 let arg = recFunc(x, env, saved.count)
-                UniquedListWrapper([arg.ast] + saved.ast, arg.count)
-            f @> args UniquedListWrapper([], c)
+                UniquedListWrapper(saved.ast + [arg.ast], arg.count)
+            args ^ UniquedListWrapper([], c) @ f
 
         switch ast <|
             DesugaredAst.array ->
@@ -91,17 +93,28 @@ let uniqueIds = (astOuter :: DesugaredAst) =>
             DesugaredAst.number ->
                 UniquedWrapper(DesugaredAst.number(that.value), count),
             DesugaredAst.object ->
-                let f = (pair :: IdValuePair</DesugaredAst/>,
-                         saved :: UniquedObjectListWrapper) =>
-                    let newValue = recFunc(pair.value, env, saved.count)
-                    let newPair = IdValuePair</DesugaredAst/>(pair.identifier,
-                                                              newValue.ast)
-                    UniquedObjectListWrapper([newPair] + saved.ast,
-                                             newValue.count)
-                let contents = f @> that.contents UniquedObjectListWrapper(
-                    [],
-                    count
-                )
+                /* TODO We need this lambda for the return type right now, since
+                 * reduces are of type narrowest. But we can remove it when type
+                 * variables are working and reducers are no longer always of
+                 * type narrowest. */
+                let genContents = (
+                    list :: [IdValuePair</DesugaredAst/>]
+                ) :: UniquedObjectListWrapper =>
+                    list ^ UniquedObjectListWrapper(
+                        [],
+                        count
+                    ) @ (
+                        saved :: UniquedObjectListWrapper,
+                        pair :: IdValuePair</DesugaredAst/>
+                    ) :: UniquedObjectListWrapper =>
+                        let newValue = recFunc(pair.value, env, saved.count)
+                        let newPair = IdValuePair</DesugaredAst/>(
+                            pair.identifier,
+                            newValue.ast
+                        )
+                        UniquedObjectListWrapper(saved.ast + [newPair],
+                                                 newValue.count)
+                let contents = genContents(that.contents)
                 UniquedWrapper(DesugaredAst.object(contents.ast),
                                contents.count)
         |>)(astOuter, [], 0).ast

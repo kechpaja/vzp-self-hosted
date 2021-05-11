@@ -19,7 +19,7 @@ let opsByPrec = [ [ "||" ], /* Lowest to highest */
                   [ "+", "-", "++" ],
                   [ "*", "/", "%"  ],
                   [ "^"  ],
-                  [ "$", "@>", "@"],
+                  [ "$", "@"],
                   [ ":"  ],
                   [ ".." ],
                   [ ".", "(", "~", "</" ] ]
@@ -558,21 +558,11 @@ let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
         else
             let right = recur(operations, restOf(left.rest))
             if !right.wellFormed then fail(right.error) else
-            if left.rest:0 != "@>" then
-                { ast: { type: "call",
-                         func: { type: "lookup", identifier: left.rest:0 },
-                         args: [ left.ast, right.ast ] },
-                  rest: right.rest,
-                  wellFormed: true }
-            else
-                /* TODO This is where we check for a comma if we put that in */
-                let third = recur(operations, right.rest)
-                if !third.wellFormed then fail(third.error) else
-                { ast: { type: "call",
-                         func: { type: "lookup", identifier: left.rest:0 },
-                         args: [ left.ast, right.ast, third.ast ] },
-                  rest: third.rest,
-                  wellFormed: true }
+            { ast: { type: "call",
+                     func: { type: "lookup", identifier: left.rest:0 },
+                     args: [ left.ast, right.ast ] },
+              rest: right.rest,
+              wellFormed: true }
 
 let parseWithImports = (tokens :: [[Int64]]) =>
     if tokens:0 == "import" then
@@ -643,7 +633,7 @@ let loadProgramAndImports = (module :: [Int64]) =>
     let program = loadAndParseFile(module + ".vzp")
     if !program.wellFormed then fail(program.error) else
     let recFunc = recur
-    let f = (moduleName :: [Int64], loadedModules :: Object) =>
+    let f = (loadedModules :: Object, moduleName :: [Int64]) =>
         if utils.in(moduleName, 
                     ((x :: Object) => x.path) $ loadedModules.modules) then
             loadedModules
@@ -654,15 +644,15 @@ let loadProgramAndImports = (module :: [Int64]) =>
             else
                 let paths = ((x :: Object) => x.path) $ recResult.modules
                 { modules: recResult.modules
-                    + (((m :: Object, list :: [Object]) => 
-                        if utils.in(m.path, paths) then list else [m] + list) 
-                            @> loadedModules.modules []),
+                    + ([] @ (list :: [Object], m :: Object) =>
+                        if utils.in(m.path, paths)
+                            then list else list + [m])(loadedModules.modules),
                   wellFormed: true }
 
     let resolvedModules = ((x :: [Int64]) => 
                                 resolveModule(module, x)) $ program.modules
 
-    let results = (f @> resolvedModules { modules: [], wellFormed: true })
+    let results = (resolvedModules ^ { modules: [], wellFormed: true } @ f)
     if !results.wellFormed then
         results
     else

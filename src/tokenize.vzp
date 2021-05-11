@@ -54,28 +54,29 @@ let simplifyToken = (t :: [Int64]) => if isEOL(t:0) then ";" else t
 
 /* Stuff for removing unnecessary tokens */
 let mergeKeywords = ["==", "!=", "<", "<=", ">", ">=", "||", "&&", ".", "..", 
-                     ":", "+", "++", "-", "/", "*", "%", "@>", "@", "$", "=>",
-                     "^", "~", ",", ";", "then", "else", "as", "::", "->"]
+                     ":", "+", "++", "-", "/", "*", "%", "@", "$", "=>", "^",
+                     "~", ",", ";", "then", "else", "as", "::", "->"]
 let mergeKeywordsBefore = ["if", "import", "let", "(", "[", "{", "<|", "</"]
                                                                 + mergeKeywords
 let mergeKeywordsAfter = ["/>", "|>", ")", "}", "]"] + mergeKeywords
 
-let merge = (token :: [Int64], list :: [[Int64]]) =>
+let merge = (list :: [[Int64]], token :: [Int64]) =>
     if length(token) >= 2 && (token:(0..2)) == "/*" then list else
     if length(list) == 0 && token == ";" then [] else
     if length(list) == 0 then [token] else
     if token == " " then list else
-    if utils.in(token, mergeKeywordsBefore) && ((list:0) == ";") then 
-        [token] + (if length(list) > 1 then (list:(1..length(list))) else [])
-    else if utils.in(list:0, mergeKeywordsAfter) && token == ";" then
+    let last = list:(length(list) - 1)
+    if utils.in(last, mergeKeywordsBefore) && token == ";" then
         list
+    else if utils.in(token, mergeKeywordsAfter) && last == ";" then
+        list:0..(length(list)-1) + [token]
     else
-        [token] + list
+        list + [token]
 
 /* Just export this function */
 (program :: [Int64]) =>
-    let tokens = merge @> (simplifyToken $ tokenize("", program)) []
-    if length(tokens) > 0 && (tokens:0 == ";") then 
+    let tokens = simplifyToken $ tokenize("", program) ^ [] @ merge
+    if length(tokens) > 0 && tokens:0 == ";" then
         (tokens:(1..length(tokens)))
     else
         tokens

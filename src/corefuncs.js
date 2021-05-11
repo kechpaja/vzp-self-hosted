@@ -42,18 +42,6 @@ function _slow_43_(closure, left, right) {
     throw "slow+ got '" + left + "' and '" + JSON.stringify(right) + "'";
 }
 
-/* @> */
-// TODO can probably remove this too once reducer works, although that will
-// require a bit more work since I use so many of them.
-function __64__62_(closure, one, two, three) {
-    let acc = three;
-    two.concat([]).reverse().forEach(function (x) {
-        acc = one._f(one, x, acc);
-    });
-
-    return acc;
-}
-
 /* : */
 // TODO we can get rid of this as soon as we've stopped generating calls to it
 // in the compiler. In practice, that will be once we've typed object fields.

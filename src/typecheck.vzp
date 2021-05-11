@@ -23,15 +23,9 @@ let stringifyType = (t :: Object) =>
     else if t.category == "named" || t.category == "dummy" then
         t.name
     else if t.category == "type" || t.category == "user-defined" then
-        let recFunc = recur
         t.category + (if t.category == "user-defined" 
                       then "(" + utils.itoa(t.id) + ")" 
-                      else "") + " - fields: "
-        + ((x :: Object, s :: [Int64]) => 
-            x.param + " :: <" + recFunc(x.ann) + "> " + s) @> t.fields ""
-        + "statics: <|"
-        + ((x :: Object, s :: [Int64]) => 
-            x.identifier + " :: <stuff> " + s) @> t.statics "|>"
+                      else "")
     else if t.category == "error" then
         "Error: " + t.name
     else
@@ -92,7 +86,7 @@ let unify = (t1 :: Object, t2 :: Object) =>
          name: "unrecognized type category: " + t1.category
                 + " occurred with " + stringifyType(t2) }
 
-let unifyList = (list :: [Object]) => unify @> list narrowest
+let unifyList = (list :: [Object]) => list ^ narrowest @ unify
 
 let appendToEnv = (id :: [Int64], t :: Object, env :: [Object]) =>
     [{ id: id, t: t}] + env
@@ -110,9 +104,8 @@ let subs = (tast :: Object, env :: [Object]) =>
     if tast.category == "named" && isInEnv(tast.name, env) then
         let ty = getFromEnv(tast.name, env)
         if ty.category != "type" && ty.category != "user-defined" then ty else
-        let e = ((i :: Int64, nv :: [Object]) =>
+        let e = 0..length(ty.params) ^ env @ (nv :: [Object], i :: Int64) =>
                     appendToEnv(ty.params:i, recWithSameEnv(tast.args:i), nv)
-                ) @> 0..length(ty.params) env
 
         { category: "user-defined",
           id: ty.id,
@@ -366,29 +359,6 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   args: newArgs,
                   ann: { category: "error",
                          name: "incompatible types in ':'" } }
-        else if newFunc.type == "lookup" && newFunc.identifier == "@>"
-                                         && length(newArgs) == 3 then
-            let one = (newArgs:0).ann
-            let two = (newArgs:1).ann
-            let three = (newArgs:2).ann
-            if one.category == "function" && length(one.params) == 2
-                    && (two.category == "array"
-                        && unify(one.params:0,
-                                 two.contents).category != "error")
-                        || two.category == "dummy" then
-                { type: "call",
-                  func: newFunc,
-                  args: newArgs,
-                  ann: unify(one.return, unify(one.params:1, three)) }
-            else
-                { type: "call",
-                  func: newFunc,
-                  args: newArgs,
-                  ann: { category: "error",
-                         name: "type mismatch in @>: " + stringifyType(one)
-                            + " " + stringifyType(two) + " "
-                            + stringifyType(three) } }
-
         /* TODO */
         /* Allow us to call object fields. Remove when we type object fields. */
         else if newFunc.ann.category == "dummy" then
@@ -500,9 +470,9 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                   field: ast.field,
                   ann: { category: "error",
                          name: "No field '" + ast.field + "' in "
-                          + ((x :: Object, y :: [Int64]) => 
-                                x.param + ": " + stringifyType(x.ann) + ", " + y
-                            ) @> newObj.ann.fields "" } }
+                          + newObj.ann.fields ^ "" @ (y :: [Int64],
+                                                      x :: Object) =>
+                            x.param + ": " + stringifyType(x.ann) + ", " + y } }
             else
                 { type: "field_access",
                   obj: newObj,
@@ -522,8 +492,8 @@ let typecheck = (ast :: Object, env :: [Object]) =>
               field: ast.field,
               ann: narrowest } /* TODO eventually check types of fields */
     else if ast.type == "lambda" then
-        let midEnv = ((p :: Object, e :: [Object]) => 
-            appendToEnv(p.param, subs(p.ann, env), e)) @> ast.params env
+        let midEnv = ast.params ^ env @ (e :: [Object], p :: Object) =>
+                                    appendToEnv(p.param, subs(p.ann, env), e)
         let paramsWithoutTypes = ((p :: Object) => p.param) $ ast.params
         let paramTypes = ((x :: Object) => subs(x.ann, env)) $ ast.params
         let expectedReturnType = subs(ast.returnType, env)
@@ -559,12 +529,11 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         let handleKeyValuePair = (x :: Object) =>
             { identifier: x.identifier, value: recFunc(x.value, env) }
         let newContents = handleKeyValuePair $ ast.contents
-        let forFold = (x :: Object, y :: [Int64]) =>
+        let errorsString = newContents ^ "" @ (y :: [Int64], x :: Object) =>
             if x.value.ann.category == "error" then
                 x.value.ann.name + ", " + y
             else
                 y
-        let errorsString = forFold @> newContents ""
         if length(errorsString) > 0 then
             { type: "object",
               contents: newContents,
@@ -587,9 +556,8 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         else if length(args) == 0 then
             expr
         else
-            let newEnv = ((x :: Int64, e :: [Object]) => 
+            let newEnv = 0..length(args) ^ env @ (e :: [Object], x :: Int64) =>
                 appendToEnv(expr.ann.params:x, args:x, e)
-            ) @> 0..length(args) env
 
             let ann = subs(expr.ann, newEnv)
             let newAnn = { category: "type",
@@ -669,7 +637,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
         let asfd = print(ast)
         ast
 
-/* TODO ==, !=, $, and @> can be handled with type variables, which are
+/* TODO ==, !=, and $ can be handled with type variables, which are
  * coming in a later version. Probably handle @ and array concat that way too.*/
 let envWithBuiltins = [
     { id: "||", t: function([boolean, boolean], boolean) },

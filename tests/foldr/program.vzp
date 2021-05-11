@@ -1,1 +1,0 @@
-if (((x :: Int64, y :: Int64) => x - y) @> [3, 2, 1] 0) == 2 then print("2") else print("asdf")
