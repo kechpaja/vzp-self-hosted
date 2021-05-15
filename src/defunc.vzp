@@ -82,7 +82,9 @@ let defunc_main = (ast :: TransformedAst,
             let recFunc = recur
             let elseFunc = () =>
                 let func = recFunc(that.func, env, args.count)
-                DefuncWrapper(JsAst.call(JsAst.field_access(func.ast, "f"),
+                DefuncWrapper(JsAst.call(JsAst.binop(":",
+                                                     func.ast,
+                                                     JsAst.number(0)),
                                          [func.ast] + args.asts),
                               func.funcs + args.funcs,
                               func.closure + args.closure,
@@ -136,19 +138,17 @@ let defunc_main = (ast :: TransformedAst,
         TransformedAst.lambda ->
             let body = recur(that.body, that.params, count + 1)
             let closureIds = unique(body.closure)
-            let newBody = closureIds ^ body.ast @ (
+            let newBody = 0..length(closureIds) ^ body.ast @ (
                 inner :: JsAst,
-                x :: [Int64]
-            ) => JsAst.assignment(x,
-                                  JsAst.field_access(JsAst.lookup("f"), x),
+                x :: Int64
+            ) => JsAst.assignment(closureIds:x,
+                                  JsAst.binop(":",
+                                              JsAst.lookup("f"),
+                                              JsAst.number(x + 1)),
                                   inner)
-            let closure = ((x :: [Int64]) => IdValuePair</JsAst/>(
-                x,
-                JsAst.lookup(x)
-            )) $ closureIds
+            let closure = ((x :: [Int64]) => JsAst.lookup(x)) $ closureIds
             let funcid = "f" + utils.itoa(count)
-            let funcPair = [IdValuePair</JsAst/>("f", JsAst.lookup(funcid))]
-            DefuncWrapper(JsAst.object(closure + funcPair),
+            DefuncWrapper(JsAst.array([JsAst.lookup(funcid)] + closure),
                           [FunctionWrapper(
                               funcid,
                               ["f"] + that.params,
@@ -166,9 +166,7 @@ let defunc_main = (ast :: TransformedAst,
                 /* Don't need to close over builtins, as they are defined globally.
                  * We do need to create primitive closures for them so that they 
                  * can be passed intuitively though.*/
-                let obj = JsAst.object([
-                    IdValuePair</JsAst/>("f", JsAst.lookup(id))
-                ])
+                let obj = JsAst.array([JsAst.lookup(id)])
                 DefuncWrapper(obj, [], [], [], count)
             else if utils.in(id, unops + binops) then
                 /* These builtins can be generated */
@@ -203,9 +201,7 @@ let DefuncedProgram = type {
     let addLets = (ast :: JsAst, operation :: [Int64]) =>
         JsAst.assignment(
             operation,
-            JsAst.object([
-                IdValuePair</JsAst/>("f", JsAst.lookup("f" + operation))
-            ]),
+            JsAst.array([JsAst.lookup("f" + operation)]),
             ast
         ) 
     let generateFuncs = (operation :: [Int64]) =>

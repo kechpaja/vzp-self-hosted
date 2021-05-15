@@ -26,11 +26,11 @@ let compile_body = (ast :: JsAst, isBound :: Boolean) =>
                 wrap(recTrue(that.left) + "[" + recTrue(that.right) + "]")
             else if that.operation == "$" then
                 wrap(recTrue(that.right) + ".map(function(x){const y="
-                        + recTrue(that.left) + ";return y._f(y,x);})")
+                        + recTrue(that.left) + ";return y[0](y,x);})")
             else if that.operation == "@" then
-                wrap("{_f:function(_,a){const z=" + recTrue(that.right)
-                                + ";return a.reduce((x,y)=>z._f(z,x,y),"
-                                + recTrue(that.left) + ");}}")
+                wrap("[function(_,a){const z=" + recTrue(that.right)
+                                + ";return a.reduce((x,y)=>z[0](z,x,y),"
+                                + recTrue(that.left) + ");}]")
             else if that.operation == ".." then
                 wrap("b_range(" + recTrue(that.left) + ","
                                 + recTrue(that.right) + ")")

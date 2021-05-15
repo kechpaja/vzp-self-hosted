@@ -17,7 +17,7 @@ function _slow_61_(closure, left, right) {
         }
 
         for (let i = 0; i < left.length; i++) {
-            if (!_slow_61_({}, left[i], right[i])) {
+            if (!_slow_61_([], left[i], right[i])) {
                 return false;
             }
         }
@@ -72,29 +72,29 @@ const _ENV = {
     _argv:  process.argv.splice(1).map(function (s) {
         return s.split("").map(function (x) { return x.codePointAt(); });
     }),
-    _unique: {
-        _f: (function () {
+    _unique: [
+        (function () {
             let x = 0;
             return function (closure) {
                 x = x + 1;
                 return x;
             };
         })()
-    }
+    ]
 }
 
 /* IO functions */
 const _IO = {
-    _read: {
-        _f: function (closure, path) {
+    _read: [
+        function (closure, path) {
             return fs.readFileSync(
                 String.fromCodePoint.apply(this, path), 
                 "utf8"
             ).split("").map(function (x) { return x.codePointAt(); });
         }
-    },
-    _write: {
-        _f: function (closure, path, data) {
+    ],
+    _write: [
+        function (closure, path, data) {
             // TODO error checking?
 
             let pathString = String.fromCodePoint.apply(this, path);
@@ -102,5 +102,5 @@ const _IO = {
             fs.writeFileSync(pathString, dataString, "utf8");
             return data;
         }
-    }
+    ]
 }
