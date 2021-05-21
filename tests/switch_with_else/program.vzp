@@ -1,0 +1,13 @@
+let T = type <|
+    a {
+        s :: [Int64]
+    },
+    b { }
+|>
+
+let f = (t :: T) => switch t <|
+    T.a -> that.s,
+    else -> "ASDF"
+|>
+
+print(f(T.a("JKL:")) + f(T.b()))

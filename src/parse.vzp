@@ -371,7 +371,7 @@ let parseMap = (tokens :: [[Int64]],
     if !left.wellFormed then fail("parseMap: " + left.error) else
     if !checkFor(left.rest, "->") then fail("No -> in map!") else
     let right = parseExpr(opsByPrec, restOf(left.rest))
-    if checkFor(right.rest, ",") then
+    if checkFor(right.rest, ",") && !checkFor(restOf(right.rest), "else") then
         let rec = recur(restOf(right.rest), parseExpr)
         if !rec.wellFormed then fail(rec.error) else
         { ast: [{ left: left.ast, right: right.ast}] + rec.ast,
@@ -390,12 +390,26 @@ let parseSwitch = (tokens :: [[Int64]],
     if !checkFor(expr.rest, "<|") then fail("No <| in switch statement") else
     let cases = parseMap(restOf(expr.rest), parseExpr)
     if !cases.wellFormed then fail("parseSwitch: " + cases.error) else
-    if !checkFor(cases.rest, "|>") then fail("No |> in switch statement") else
-    { ast: { type: "switch",
-             expr: expr.ast,
-             cases: cases.ast },
-      rest: restOf(cases.rest),
-      wellFormed: true }
+    if checkFor(cases.rest, "|>") then
+        { ast: { type: "switch",
+                 expr: expr.ast,
+                 cases: cases.ast,
+                 els: { type: "number", value: 0 } },
+          rest: restOf(cases.rest),
+          wellFormed: true }
+     else if checkFor(cases.rest, ",")
+                && checkFor(restOf(cases.rest), "else")
+                && checkFor(restOf(restOf(cases.rest)), "->") then
+        let els = parseExpr(opsByPrec, restOf(restOf(restOf(cases.rest))))
+        if !els.wellFormed then fail("Bad expr in else case of switch") else
+        if !checkFor(els.rest, "|>") then fail("No |> in switch") else
+        { ast: { type: "switch",
+                 expr: expr.ast,
+                 cases: cases.ast,
+                 els: els.ast },
+          rest: restOf(els.rest),
+          wellFormed: true }
+     else fail("No |> in switch statement")
 
 let parse = (operations :: [[[Int64]]], tokens :: [[Int64]]) =>
     let recurWithFullOps = let rcr = recur; (tkns :: [[Int64]]) => 

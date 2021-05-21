@@ -594,11 +594,12 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                                               params: left.ann.params },
                                             env))
             { left: left, right: right }) $ ast.cases
+        let els = recur(ast.els, env)
         { type: "switch",
           expr: expr,
           cases: cases,
-          els: { type: "number", value: 0 }, /* TODO should be from user! */
-          ann: unifyList(((x :: Object) => x.right.ann) $ cases) }
+          els: els,
+          ann: unifyList((((x :: Object) => x.right.ann) $ cases)) }
     else if ast.type == "type" then
         let id = ENV.unique()
 
