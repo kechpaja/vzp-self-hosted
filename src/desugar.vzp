@@ -73,15 +73,13 @@ let desugar_main = (ast :: Object) =>
                     [recFunc((cases:0).left),
                      DesugaredAst.call(
                         DesugaredAst.lookup(":"),
-                        [DesugaredAst.lookup("x x"), DesugaredAst.number(0)])]
+                        [DesugaredAst.lookup("that"), DesugaredAst.number(0)])]
                 ),
-                DesugaredAst.assignment("that",
-                                        DesugaredAst.lookup("x x"),
-                                        recFunc((cases:0).right)),
+                recFunc((cases:0).right),
                 recur(restOf(cases), bottom)
             )
 
-        DesugaredAst.assignment("x x",
+        DesugaredAst.assignment("that",
                                 recur(ast.expr),
                                 handleCases(ast.cases, recur(ast.els)))
     else /* type */

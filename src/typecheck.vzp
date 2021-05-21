@@ -594,7 +594,7 @@ let typecheck = (ast :: Object, env :: [Object]) =>
                                               params: left.ann.params },
                                             env))
             { left: left, right: right }) $ ast.cases
-        let els = recur(ast.els, env)
+        let els = recur(ast.els, appendToEnv("that", expr.ann, env))
         { type: "switch",
           expr: expr,
           cases: cases,
